@@ -39,6 +39,17 @@ let lastShootTime = 0;
 const shootCooldown = 200; // 射击冷却时间（毫秒）
 let enemySpawnTimer = null; // 敌人生成定时器
 
+// 小地图相关
+let minimap;
+let minimapGraphics;
+let minimapPlayer;
+let minimapEnemies = [];
+
+// 雷达相关
+let radar;
+let radarGraphics;
+let radarRange = 200; // 雷达范围
+
 // ==========================================
 // 1. 预加载资源
 // ==========================================
@@ -183,7 +194,75 @@ function createUI() {
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
     });
     
+    // 创建小地图
+    createMinimap();
+    
+    // 创建雷达
+    createRadar();
+    
     console.log('📊 UI界面已创建');
+}
+
+// ==========================================
+// 5.1 创建小地图
+// ==========================================
+function createMinimap() {
+    const minimapX = 630;
+    const minimapY = 16;
+    const minimapWidth = 150;
+    const minimapHeight = 150;
+    
+    // 小地图背景
+    minimap = scene.add.rectangle(
+        minimapX + minimapWidth/2,
+        minimapY + minimapHeight/2,
+        minimapWidth,
+        minimapHeight,
+        0x0a0a1a
+    );
+    minimap.setStrokeStyle(2, 0x333355);
+    
+    // 小地图标题
+    scene.add.text(minimapX, minimapY - 20, '小地图', {
+        fontSize: '14px',
+        fill: '#ffffff',
+        fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
+    });
+    
+    // 小地图图形绘制器
+    minimapGraphics = scene.add.graphics();
+    
+    // 小地图上的玩家（绿色圆点）
+    minimapPlayer = scene.add.circle(0, 0, 5, 0x4ECDC4);
+    minimapPlayer.setStrokeStyle(1, 0xffffff);
+}
+
+// ==========================================
+// 5.2 创建雷达
+// ==========================================
+function createRadar() {
+    const radarX = 630;
+    const radarY = 200;
+    const radarSize = 120;
+    
+    // 雷达背景
+    radar = scene.add.circle(
+        radarX + radarSize/2,
+        radarY + radarSize/2,
+        radarSize/2,
+        0x0a0a1a
+    );
+    radar.setStrokeStyle(2, 0x333355);
+    
+    // 雷达标题
+    scene.add.text(radarX, radarY - 20, '雷达', {
+        fontSize: '14px',
+        fill: '#ffffff',
+        fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
+    });
+    
+    // 雷达图形绘制器
+    radarGraphics = scene.add.graphics();
 }
 
 // ==========================================
@@ -219,6 +298,105 @@ function update() {
             enemy.destroy();
         }
     }, this);
+    
+    // 更新小地图
+    updateMinimap();
+    
+    // 更新雷达
+    updateRadar();
+}
+
+// ==========================================
+// 6.1 更新小地图
+// ==========================================
+function updateMinimap() {
+    if (!minimap || !minimapPlayer) return;
+    
+    const minimapX = 630;
+    const minimapY = 16;
+    const minimapWidth = 150;
+    const minimapHeight = 150;
+    const gameWidth = 800;
+    const gameHeight = 600;
+    
+    // 计算玩家在小地图上的位置
+    const playerMinimapX = minimapX + (player.x / gameWidth) * minimapWidth;
+    const playerMinimapY = minimapY + (player.y / gameHeight) * minimapHeight;
+    
+    // 更新玩家在小地图上的位置
+    minimapPlayer.setPosition(playerMinimapX, playerMinimapY);
+    
+    // 清除之前的敌人标记
+    minimapEnemies.forEach(marker => {
+        if (marker && marker.active) {
+            marker.destroy();
+        }
+    });
+    minimapEnemies = [];
+    
+    // 在小地图上绘制敌人
+    enemies.children.each(function(enemy) {
+        const enemyMinimapX = minimapX + (enemy.x / gameWidth) * minimapWidth;
+        const enemyMinimapY = minimapY + (enemy.y / gameHeight) * minimapHeight;
+        
+        const enemyMarker = scene.add.circle(enemyMinimapX, enemyMinimapY, 3, 0xFF6B6B);
+        minimapEnemies.push(enemyMarker);
+    }, this);
+}
+
+// ==========================================
+// 6.2 更新雷达
+// ==========================================
+function updateRadar() {
+    if (!radarGraphics) return;
+    
+    const radarX = 630;
+    const radarY = 200;
+    const radarSize = 120;
+    const radarCenterX = radarX + radarSize/2;
+    const radarCenterY = radarY + radarSize/2;
+    
+    // 清除之前的雷达绘制
+    radarGraphics.clear();
+    
+    // 绘制雷达范围圆圈
+    radarGraphics.lineStyle(1, 0x333355, 0.5);
+    radarGraphics.strokeCircle(radarCenterX, radarCenterY, radarSize/2);
+    radarGraphics.strokeCircle(radarCenterX, radarCenterY, radarSize/4);
+    
+    // 绘制十字线
+    radarGraphics.lineStyle(1, 0x333355, 0.3);
+    radarGraphics.lineBetween(radarCenterX - radarSize/2, radarCenterY, radarCenterX + radarSize/2, radarCenterY);
+    radarGraphics.lineBetween(radarCenterX, radarCenterY - radarSize/2, radarCenterX, radarCenterY + radarSize/2);
+    
+    // 绘制雷达上的敌人
+    enemies.children.each(function(enemy) {
+        // 计算敌人相对于玩家的位置
+        const dx = enemy.x - player.x;
+        const dy = enemy.y - player.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // 只显示雷达范围内的敌人
+        if (distance < radarRange) {
+            // 计算在雷达上的位置（按比例缩放）
+            const scale = (radarSize/2 - 10) / radarRange;
+            const radarEnemyX = radarCenterX + dx * scale;
+            const radarEnemyY = radarCenterY + dy * scale;
+            
+            // 根据距离设置颜色和大小
+            const alpha = 1 - (distance / radarRange);
+            const size = 2 + (1 - distance / radarRange) * 4;
+            
+            radarGraphics.fillStyle(0xFF6B6B, alpha);
+            radarGraphics.fillCircle(radarEnemyX, radarEnemyY, size);
+        }
+    }, this);
+    
+    // 绘制玩家在雷达中心
+    radarGraphics.fillStyle(0x4ECDC4, 1);
+    radarGraphics.fillCircle(radarCenterX, radarCenterY, 4);
+    radarGraphics.lineStyle(1, 0xffffff, 1);
+    radarGraphics.strokeCircle(radarCenterX, radarCenterY, 4);
 }
 
 // ==========================================
