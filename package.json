@@ -1,0 +1,23 @@
+{
+  "name": "battle-survivors",
+  "version": "1.0.0",
+  "description": "2D上帝视角多人战斗肉鸽游戏",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
+    "client": "http-server client/"
+  },
+  "keywords": ["game", "multiplayer", "roguelike", "phaser", "websocket"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "phaser": "^3.55.2",
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "http-server": "^14.1.1"
+  }
+}

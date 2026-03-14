@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>战场幸存者</title>
+    
+    <!-- 基本CSS样式 -->
+    <style>
+        /* 全局样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* 页面主体样式 */
+        body {
+            /* 深色背景 */
+            background-color: #1a1a2e;
+            /* 防止出现滚动条 */
+            overflow: hidden;
+            /* 字体设置 */
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+        }
+        
+        /* 游戏容器样式 */
+        #game-container {
+            /* 画布大小：800x600像素 */
+            width: 800px;
+            height: 600px;
+            /* 居中显示 */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            /* 边框样式 */
+            border: 2px solid #16213e;
+            border-radius: 8px;
+            /* 阴影效果 */
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 850px) {
+            #game-container {
+                /* 小屏幕下等比缩放 */
+                width: 95vw;
+                height: calc(95vw * 0.75);
+                max-height: 90vh;
+            }
+        }
+        
+        @media (max-height: 650px) {
+            #game-container {
+                /* 屏幕高度不够时等比缩放 */
+                height: 90vh;
+                width: calc(90vh * 1.333);
+                max-width: 95vw;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 游戏容器 -->
+    <div id="game-container"></div>
+    
+    <!-- 引入Phaser.js库 -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+</body>
+</html>
