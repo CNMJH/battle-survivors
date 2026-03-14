@@ -5,8 +5,8 @@
 class MapGenerator {
     constructor(scene) {
         this.scene = scene;
-        this.mapWidth = 50; // 地图宽度（格子数）
-        this.mapHeight = 38; // 地图高度（格子数）
+        this.mapWidth = 100; // 地图宽度（格子数）- 增大一倍
+        this.mapHeight = 75; // 地图高度（格子数）- 增大一倍
         this.tileSize = 16; // 每个格子大小（像素）
         this.map = []; // 地图数据
     }
@@ -52,7 +52,7 @@ class MapGenerator {
     
     // 随机添加障碍物
     addRandomObstacles() {
-        const obstacleCount = 80; // 障碍物数量
+        const obstacleCount = 300; // 障碍物数量 - 增大地图后增加障碍物
         
         for (let i = 0; i < obstacleCount; i++) {
             const x = Phaser.Math.Between(2, this.mapWidth - 3);

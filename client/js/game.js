@@ -116,6 +116,10 @@ function createPlayer() {
     scene.physics.add.existing(player);
     player.body.setCollideWorldBounds(true);
     
+    // 设置摄像机跟随玩家
+    scene.cameras.main.startFollow(player);
+    scene.cameras.main.setBounds(0, 0, mapGenerator.getPixelWidth(), mapGenerator.getPixelHeight());
+    
     console.log('🎮 玩家角色已创建');
 }
 
