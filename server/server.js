@@ -1,6 +1,6 @@
 // ==========================================
 // 战场幸存者 - 后端服务器
-// 功能：Express服务器 + WebSocket + 房间管理 + 玩家同步
+// 功能：Express服务器 + WebSocket + 房间管理 + 玩家同步 + 游戏逻辑
 // ==========================================
 
 const express = require('express');
@@ -8,6 +8,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const cors = require('cors');
 const path = require('path');
+const GameLogic = require('./gameLogic');
 
 // ==========================================
 // 1. 创建Express服务器
@@ -45,6 +46,7 @@ class Room {
         this.minPlayers = 2; // 最少2人
         this.gameState = 'waiting'; // waiting, playing, ended
         this.createdAt = Date.now();
+        this.gameLogic = new GameLogic(this); // 游戏逻辑
     }
     
     // 添加玩家
@@ -74,6 +76,8 @@ class Room {
             // 如果房间没有玩家了，删除房间
             if (this.players.size === 0) {
                 console.log(`🏠 房间 ${this.id} 已空，删除房间`);
+                // 停止游戏逻辑
+                this.gameLogic.stopGame();
                 rooms.delete(this.id);
             }
             // 如果房间人数少于2人，回到等待状态
@@ -88,6 +92,9 @@ class Room {
     startGame() {
         this.gameState = 'playing';
         console.log(`🎮 房间 ${this.id} 游戏开始！`);
+        
+        // 启动游戏逻辑
+        this.gameLogic.startGame();
         
         // 通知房间内所有玩家游戏开始
         this.broadcast({
@@ -220,6 +227,11 @@ function handleMessage(ws, playerId, message) {
             handlePlayerMove(ws, playerId, message);
             break;
             
+        // 玩家射击
+        case 'playerShoot':
+            handlePlayerShoot(ws, playerId, message);
+            break;
+            
         // 获取房间列表
         case 'getRooms':
             handleGetRooms(ws, playerId, message);
@@ -348,6 +360,20 @@ function handlePlayerMove(ws, playerId, message) {
         type: 'playerMoved',
         player: currentPlayer.getInfo()
     });
+}
+
+// 处理玩家射击
+function handlePlayerShoot(ws, playerId, message) {
+    if (!currentPlayer) return;
+    
+    const roomId = playerRooms.get(playerId);
+    if (!roomId) return;
+    
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    // 服务器权威验证射击
+    room.gameLogic.handlePlayerShoot(playerId, message);
 }
 
 // 处理获取房间列表
