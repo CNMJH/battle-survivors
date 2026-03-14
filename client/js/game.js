@@ -39,6 +39,9 @@ let lastShootTime = 0;
 const shootCooldown = 200;
 let enemySpawnTimer = null;
 
+// 地图相关
+let mapGenerator;
+
 // 小地图相关
 let minimap;
 let minimapPlayer;
@@ -57,6 +60,14 @@ function preload() {
 function create() {
     console.log('🎮 游戏场景已创建');
     scene = this;
+    
+    // 生成并渲染随机地图
+    mapGenerator = new MapGenerator(this);
+    mapGenerator.generate();
+    mapGenerator.renderInPhaser();
+    
+    // 设置世界边界
+    this.physics.world.setBounds(0, 0, mapGenerator.getPixelWidth(), mapGenerator.getPixelHeight());
     
     createPlayer();
     enemies = this.physics.add.group();
@@ -96,10 +107,18 @@ function createPlayer() {
     score = 0;
     lastShootTime = 0;
     
-    player = scene.add.rectangle(400, 300, 32, 32, '#4ECDC4');
+    // 在地图中心创建玩家
+    const playerX = mapGenerator.getPixelWidth() / 2;
+    const playerY = mapGenerator.getPixelHeight() / 2;
+    
+    player = scene.add.rectangle(playerX, playerY, 32, 32, '#4ECDC4');
     player.setStrokeStyle(2, 0xffffff);
     scene.physics.add.existing(player);
     player.body.setCollideWorldBounds(true);
+    
+    // 设置摄像机跟随玩家
+    scene.cameras.main.startFollow(player);
+    scene.cameras.main.setBounds(0, 0, mapGenerator.getPixelWidth(), mapGenerator.getPixelHeight());
     
     console.log('🎮 玩家角色已创建');
 }
@@ -108,14 +127,17 @@ function createPlayer() {
 // 4. 生成敌人
 // ==========================================
 function spawnEnemy() {
+    const mapWidth = mapGenerator.getPixelWidth();
+    const mapHeight = mapGenerator.getPixelHeight();
+    
     const side = Phaser.Math.Between(0, 3);
     let x, y;
     
     switch(side) {
-        case 0: x = Phaser.Math.Between(0, 800); y = -32; break;
-        case 1: x = 832; y = Phaser.Math.Between(0, 600); break;
-        case 2: x = Phaser.Math.Between(0, 800); y = 632; break;
-        case 3: x = -32; y = Phaser.Math.Between(0, 600); break;
+        case 0: x = Phaser.Math.Between(0, mapWidth); y = -32; break;
+        case 1: x = mapWidth + 32; y = Phaser.Math.Between(0, mapHeight); break;
+        case 2: x = Phaser.Math.Between(0, mapWidth); y = mapHeight + 32; break;
+        case 3: x = -32; y = Phaser.Math.Between(0, mapHeight); break;
     }
     
     const enemy = scene.add.rectangle(x, y, 28, 28, '#FF6B6B');
@@ -190,6 +212,9 @@ function createMinimap() {
 function update() {
     if (!player) return;
     
+    const mapWidth = mapGenerator.getPixelWidth();
+    const mapHeight = mapGenerator.getPixelHeight();
+    
     player.body.setVelocity(0);
     
     if (cursors.left.isDown || keyA.isDown) {
@@ -208,8 +233,10 @@ function update() {
         scene.physics.moveToObject(enemy, player, 80);
     }, this);
     
+    // 清理超出地图范围太远的敌人
     enemies.children.each(function(enemy) {
-        if (enemy.x < -100 || enemy.x > 900 || enemy.y < -100 || enemy.y > 700) {
+        if (enemy.x < -100 || enemy.x > mapWidth + 100 || 
+            enemy.y < -100 || enemy.y > mapHeight + 100) {
             enemy.destroy();
         }
     }, this);
@@ -221,17 +248,17 @@ function update() {
 // 6.1 更新小地图
 // ==========================================
 function updateMinimap() {
-    if (!minimap || !minimapPlayer) return;
+    if (!minimap || !minimapPlayer || !mapGenerator) return;
     
     const minimapX = 620;
     const minimapY = 30;
     const minimapWidth = 160;
     const minimapHeight = 160;
-    const gameWidth = 800;
-    const gameHeight = 600;
+    const mapWidth = mapGenerator.getPixelWidth();
+    const mapHeight = mapGenerator.getPixelHeight();
     
-    const playerMinimapX = minimapX + (player.x / gameWidth) * minimapWidth;
-    const playerMinimapY = minimapY + 25 + (player.y / gameHeight) * (minimapHeight - 30);
+    const playerMinimapX = minimapX + (player.x / mapWidth) * minimapWidth;
+    const playerMinimapY = minimapY + 25 + (player.y / mapHeight) * (minimapHeight - 30);
     
     minimapPlayer.setPosition(playerMinimapX, playerMinimapY);
     
@@ -243,8 +270,8 @@ function updateMinimap() {
     minimapEnemies = [];
     
     enemies.children.each(function(enemy) {
-        const enemyMinimapX = minimapX + (enemy.x / gameWidth) * minimapWidth;
-        const enemyMinimapY = minimapY + 25 + (enemy.y / gameHeight) * (minimapHeight - 30);
+        const enemyMinimapX = minimapX + (enemy.x / mapWidth) * minimapWidth;
+        const enemyMinimapY = minimapY + 25 + (enemy.y / mapHeight) * (minimapHeight - 30);
         
         const enemyMarker = scene.add.circle(enemyMinimapX, enemyMinimapY, 3, 0xFF6B6B);
         minimapEnemies.push(enemyMarker);
