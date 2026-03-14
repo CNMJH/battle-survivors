@@ -8,16 +8,23 @@
     "dev": "nodemon server/server.js",
     "client": "http-server client/"
   },
-  "keywords": ["game", "multiplayer", "roguelike", "phaser", "websocket"],
+  "keywords": [
+    "game",
+    "multiplayer",
+    "roguelike",
+    "phaser",
+    "websocket"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "phaser": "^3.55.2",
+    "cors": "^2.8.6",
     "express": "^4.18.2",
+    "phaser": "^3.55.2",
     "ws": "^8.14.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1",
-    "http-server": "^14.1.1"
+    "http-server": "^14.1.1",
+    "nodemon": "^3.0.1"
   }
 }

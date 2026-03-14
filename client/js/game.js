@@ -5,8 +5,8 @@
 // 游戏配置
 const gameConfig = {
     type: Phaser.AUTO,
-    width: 1600, // 扩大画布以适应瓦片地图
-    height: 1216, // 扩大画布以适应瓦片地图
+    width: 800, // 改回800x600
+    height: 600, // 改回800x600
     parent: 'game-container',
     backgroundColor: '#1a1a2e',
     scene: {
@@ -23,12 +23,9 @@ const gameConfig = {
     }
 };
 
-// 地图生成器
-let mapGenerator = null;
-let gameMap = null;
-
 // 全局变量
 let game;
+let scene; // 保存scene引用
 let player;
 let enemies;
 let bullets;
@@ -37,12 +34,10 @@ let score = 0;
 let healthText;
 let scoreText;
 let cursors;
-let spacebar;
+let keyA, keyD, keyW, keyS; // WASD按键
 let lastShootTime = 0;
-const shootCooldown = 300; // 射击冷却时间（毫秒）
-
-// 道具系统
-let itemManager = null;
+const shootCooldown = 200; // 射击冷却时间（毫秒）
+let enemySpawnTimer = null; // 敌人生成定时器
 
 // ==========================================
 // 1. 预加载资源
@@ -58,10 +53,8 @@ function preload() {
 function create() {
     console.log('🎮 游戏场景已创建');
     
-    // 创建并渲染随机地图
-    mapGenerator = new MapGenerator();
-    gameMap = mapGenerator.generate();
-    mapGenerator.renderInPhaser(this);
+    // 保存scene引用
+    scene = this;
     
     // 创建玩家
     createPlayer();
@@ -77,31 +70,48 @@ function create() {
     
     // 设置键盘输入
     cursors = this.input.keyboard.createCursorKeys();
-    spacebar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    keyA = this.input.keyboard.addKey('A');
+    keyD = this.input.keyboard.addKey('D');
+    keyW = this.input.keyboard.addKey('W');
+    keyS = this.input.keyboard.addKey('S');
     
-    // 设置摄像机跟随玩家
-    this.cameras.main.startFollow(player);
-    this.cameras.main.setBounds(0, 0, mapGenerator.getPixelWidth(), mapGenerator.getPixelHeight());
+    // 设置鼠标点击射击
+    this.input.on('pointerdown', function(pointer) {
+        if (pointer.leftButtonDown()) {
+            shootBullet();
+        }
+    });
     
-    // 设置世界边界
-    this.physics.world.setBounds(0, 0, mapGenerator.getPixelWidth(), mapGenerator.getPixelHeight());
+    // 设置碰撞检测
+    this.physics.add.overlap(bullets, enemies, hitEnemy, null, this);
+    this.physics.add.overlap(player, enemies, hitPlayer, null, this);
     
-    // 初始化道具管理器
-    itemManager = new ItemManager(this);
-    itemManager.init();
-    this.itemManager = itemManager;
+    // 启动敌人生成定时器（每2秒生成一个敌人）
+    enemySpawnTimer = this.time.addEvent({
+        delay: 2000,
+        callback: spawnEnemy,
+        callbackScope: this,
+        loop: true
+    });
+    
+    console.log('✅ 游戏初始化完成');
 }
 
 // ==========================================
 // 3. 创建玩家角色
 // ==========================================
 function createPlayer() {
+    // 重置全局变量
+    playerHealth = 100;
+    score = 0;
+    lastShootTime = 0;
+    
     // 创建玩家（像素风格的方块）
-    player = this.add.rectangle(400, 300, 32, 32, '#4ECDC4');
+    player = scene.add.rectangle(400, 300, 32, 32, '#4ECDC4');
     player.setStrokeStyle(2, 0xffffff);
     
     // 启用物理引擎
-    this.physics.add.existing(player);
+    scene.physics.add.existing(player);
     player.body.setCollideWorldBounds(true);
     
     console.log('🎮 玩家角色已创建');
@@ -135,11 +145,12 @@ function spawnEnemy() {
     }
     
     // 创建敌人（像素风格的红色方块）
-    const enemy = this.add.rectangle(x, y, 28, 28, '#FF6B6B');
+    const enemy = scene.add.rectangle(x, y, 28, 28, '#FF6B6B');
     enemy.setStrokeStyle(2, 0xffffff);
     
     // 启用物理引擎
-    this.physics.add.existing(enemy);
+    scene.physics.add.existing(enemy);
+    enemy.body.setCollideWorldBounds(false); // 敌人可以超出屏幕
     enemies.add(enemy);
     
     console.log('👾 敌人已生成');
@@ -150,7 +161,7 @@ function spawnEnemy() {
 // ==========================================
 function createUI() {
     // 显示血量
-    healthText = this.add.text(16, 16, '血量: 100', {
+    healthText = scene.add.text(16, 16, '血量: 100', {
         fontSize: '20px',
         fill: '#ffffff',
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
@@ -158,12 +169,19 @@ function createUI() {
     healthText.setShadow(2, 2, '#000000', 2);
     
     // 显示分数
-    scoreText = this.add.text(16, 48, '分数: 0', {
+    scoreText = scene.add.text(16, 48, '分数: 0', {
         fontSize: '20px',
         fill: '#ffffff',
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
     });
     scoreText.setShadow(2, 2, '#000000', 2);
+    
+    // 显示操作说明
+    const helpText = scene.add.text(16, 550, 'WASD/方向键移动 | 鼠标左键射击', {
+        fontSize: '14px',
+        fill: '#aaaaaa',
+        fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
+    });
     
     console.log('📊 UI界面已创建');
 }
@@ -174,36 +192,32 @@ function createUI() {
 function update() {
     if (!player) return;
     
-    // 检测道具拾取
-    if (itemManager) {
-        itemManager.checkPickup(player);
-    }
-    
     // 玩家移动
-    player.setVelocity(0);
+    player.body.setVelocity(0);
     
-    if (cursors.left.isDown) {
-        player.setVelocityX(-200);
-    } else if (cursors.right.isDown) {
-        player.setVelocityX(200);
+    // WASD或方向键移动
+    if (cursors.left.isDown || keyA.isDown) {
+        player.body.setVelocityX(-200);
+    } else if (cursors.right.isDown || keyD.isDown) {
+        player.body.setVelocityX(200);
     }
     
-    if (cursors.up.isDown) {
-        player.setVelocityY(-200);
-    } else if (cursors.down.isDown) {
-        player.setVelocityY(200);
-    }
-    
-    // 玩家射击
-    const currentTime = this.time.now;
-    if (spacebar.isDown && currentTime > lastShootTime + shootCooldown) {
-        shootBullet();
-        lastShootTime = currentTime;
+    if (cursors.up.isDown || keyW.isDown) {
+        player.body.setVelocityY(-200);
+    } else if (cursors.down.isDown || keyS.isDown) {
+        player.body.setVelocityY(200);
     }
     
     // 敌人AI：向玩家移动
     enemies.children.each(function(enemy) {
-        this.physics.moveToObject(enemy, player, 100);
+        scene.physics.moveToObject(enemy, player, 80);
+    }, this);
+    
+    // 清理超出屏幕的敌人
+    enemies.children.each(function(enemy) {
+        if (enemy.x < -100 || enemy.x > 900 || enemy.y < -100 || enemy.y > 700) {
+            enemy.destroy();
+        }
     }, this);
 }
 
@@ -211,27 +225,37 @@ function update() {
 // 7. 射击子弹
 // ==========================================
 function shootBullet() {
+    // 检查射击冷却
+    const currentTime = scene.time.now;
+    if (currentTime < lastShootTime + shootCooldown) {
+        return;
+    }
+    lastShootTime = currentTime;
+    
     // 创建子弹（像素风格的白色小方块）
-    const bullet = this.add.rectangle(player.x, player.y, 8, 8, '#ffffff');
+    const bullet = scene.add.rectangle(player.x, player.y, 8, 8, '#ffffff');
     
     // 启用物理引擎
-    this.physics.add.existing(bullet);
+    scene.physics.add.existing(bullet);
+    bullet.body.setCollideWorldBounds(false);
     bullets.add(bullet);
     
-    // 设置子弹速度（根据玩家移动方向）
+    // 设置子弹速度（根据鼠标位置）
     const angle = Phaser.Math.Angle.Between(
         player.x, player.y,
-        this.input.activePointer.x, this.input.activePointer.y
+        scene.input.activePointer.x, scene.input.activePointer.y
     );
     
-    this.physics.velocityFromRotation(angle, 400, bullet.body.velocity);
+    scene.physics.velocityFromRotation(angle, 500, bullet.body.velocity);
     
-    // 3秒后自动销毁子弹
-    this.time.delayedCall(3000, function() {
+    // 2秒后自动销毁子弹
+    scene.time.delayedCall(2000, function() {
         if (bullet && bullet.active) {
             bullet.destroy();
         }
     });
+    
+    console.log('🔫 射击！');
 }
 
 // ==========================================
@@ -252,7 +276,7 @@ function hitEnemy(bullet, enemy) {
 // ==========================================
 // 9. 敌人击中玩家
 // ==========================================
-function hitPlayer(player, enemy) {
+function hitPlayer(playerObj, enemy) {
     // 敌人消失
     enemy.destroy();
     
@@ -274,11 +298,16 @@ function hitPlayer(player, enemy) {
 function gameOver() {
     console.log('💀 游戏结束！最终分数: ' + score);
     
+    // 停止敌人生成
+    if (enemySpawnTimer) {
+        enemySpawnTimer.remove();
+    }
+    
     // 暂停游戏
-    this.physics.pause();
+    scene.physics.pause();
     
     // 显示游戏结束文字
-    const gameOverText = this.add.text(400, 250, '游戏结束', {
+    const gameOverText = scene.add.text(400, 250, '游戏结束', {
         fontSize: '48px',
         fill: '#FF6B6B',
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
@@ -286,7 +315,7 @@ function gameOver() {
     gameOverText.setOrigin(0.5);
     gameOverText.setShadow(3, 3, '#000000', 3);
     
-    const finalScoreText = this.add.text(400, 320, '最终分数: ' + score, {
+    const finalScoreText = scene.add.text(400, 320, '最终分数: ' + score, {
         fontSize: '28px',
         fill: '#ffffff',
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
@@ -294,7 +323,7 @@ function gameOver() {
     finalScoreText.setOrigin(0.5);
     finalScoreText.setShadow(2, 2, '#000000', 2);
     
-    const restartText = this.add.text(400, 380, '刷新页面重新开始', {
+    const restartText = scene.add.text(400, 380, '刷新页面重新开始', {
         fontSize: '20px',
         fill: '#4ECDC4',
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
