@@ -1,385 +1,195 @@
 // ==========================================
-// 战场幸存者 - 角色升级系统
-// 功能：升级选择界面、升级效果、升级逻辑
+// 战场幸存者 - 升级系统
 // ==========================================
 
-// 升级类型
-const UpgradeTypes = {
-    HEALTH_BOOST: 'health_boost',      // 血量上限提升
-    ATTACK_BOOST: 'attack_boost',      // 攻击力提升
-    FIRE_RATE: 'fire_rate',             // 射击速度提升
-    MOVE_SPEED: 'move_speed',           // 移动速度提升
-    CRIT_CHANCE: 'crit_chance',          // 暴击率提升
-    AREA_DAMAGE: 'area_damage'          // 范围伤害
-};
-
-// 升级名称
-const UpgradeNames = {
-    health_boost: '❤️ 血量上限提升',
-    attack_boost: '⚔️ 攻击力提升',
-    fire_rate: '🔥 射击速度提升',
-    move_speed: '👟 移动速度提升',
-    crit_chance: '💥 暴击率提升',
-    area_damage: '🌀 范围伤害'
-};
-
-// 升级描述
-const UpgradeDescriptions = {
-    health_boost: '血量上限 +30',
-    attack_boost: '攻击力 +20%',
-    fire_rate: '射击冷却 -50ms',
-    move_speed: '移动速度 +15%',
-    crit_chance: '暴击率 +10%',
-    area_damage: '伤害范围 +20%'
-};
-
-// 升级图标颜色
-const UpgradeColors = {
-    health_boost: '#FF6B6B',
-    attack_boost: '#FFE66D',
-    fire_rate: '#FF8C42',
-    move_speed: '#4ECDC4',
-    crit_chance: '#DDA0DD',
-    area_damage: '#96CEB4'
-};
-
-// 升级管理器
 class UpgradeManager {
-    constructor(scene, player) {
+    constructor(scene) {
         this.scene = scene;
-        this.player = player;
-        this.upgrades = [];          // 已获得的升级列表
-        this.upgradeLevel = 0;        // 当前升级等级
-        this.isOpen = false;          // 升级界面是否打开
-        this.upgradeUI = null;         // 升级UI容器
-        this.upgradeButtons = [];     // 升级按钮列表
+        this.upgrades = []; // 当前已选升级
+        this.upgradeOptions = []; // 可选升级选项
+        this.isShowingUpgrade = false; // 是否正在显示升级界面
+        this.exp = 0; // 经验值
+        this.level = 1; // 等级
+        this.expToNextLevel = 50; // 升级所需经验
         
-        // 升级数据
-        this.maxHealth = 100;          // 最大血量
-        this.attackMultiplier = 1;      // 攻击倍数
-        this.fireRateBonus = 0;        // 射击速度加成
-        this.moveSpeedMultiplier = 1;  // 移动速度倍数
-        this.critChance = 0;           // 暴击率
-        this.areaDamageBonus = 0;       // 范围伤害加成
-        
-        console.log('⬆️ 升级管理器初始化');
+        // 升级定义
+        this.allUpgrades = [
+            {
+                id: 'maxHealth',
+                name: '血量上限提升',
+                description: '血量上限+20',
+                icon: '❤️',
+                apply: () => {
+                    this.scene.maxHealth = (this.scene.maxHealth || 100) + 20;
+                    this.scene.playerHealth = Math.min(this.scene.playerHealth + 20, this.scene.maxHealth);
+                }
+            },
+            {
+                id: 'attack',
+                name: '攻击力提升',
+                description: '攻击力+25%',
+                icon: '⚔️',
+                apply: () => {
+                    this.scene.attackMultiplier = (this.scene.attackMultiplier || 1) * 1.25;
+                }
+            },
+            {
+                id: 'shootSpeed',
+                name: '射击速度提升',
+                description: '射击冷却-20%',
+                icon: '🔫',
+                apply: () => {
+                    this.scene.shootCooldown = Math.max(50, (this.scene.shootCooldown || 200) * 0.8);
+                }
+            },
+            {
+                id: 'moveSpeed',
+                name: '移动速度提升',
+                description: '移动速度+20%',
+                icon: '👟',
+                apply: () => {
+                    this.scene.moveSpeedMultiplier = (this.scene.moveSpeedMultiplier || 1) * 1.2;
+                }
+            },
+            {
+                id: 'critChance',
+                name: '暴击率提升',
+                description: '暴击率+10%',
+                icon: '💥',
+                apply: () => {
+                    this.scene.critChance = (this.scene.critChance || 0) + 0.1;
+                }
+            },
+            {
+                id: 'areaDamage',
+                name: '范围伤害',
+                description: '子弹伤害范围+50%',
+                icon: '💫',
+                apply: () => {
+                    this.scene.areaDamageMultiplier = (this.scene.areaDamageMultiplier || 1) * 1.5;
+                }
+            }
+        ];
     }
     
-    // 打开升级界面（每次升级显示3个随机选项）
-    openUpgradeUI() {
-        if (this.isOpen) return;
+    // 添加经验值
+    addExp(amount) {
+        this.exp += amount;
+        console.log(`📊 获得 ${amount} 经验值，当前：${this.exp}/${this.expToNextLevel}`);
         
-        this.isOpen = true;
-        this.upgradeLevel++;
+        if (this.exp >= this.expToNextLevel) {
+            this.levelUp();
+        }
+    }
+    
+    // 升级
+    levelUp() {
+        this.exp -= this.expToNextLevel;
+        this.level++;
+        this.expToNextLevel = Math.floor(this.expToNextLevel * 1.5);
+        console.log(`🎉 升级！当前等级：${this.level}`);
         
-        console.log(`⬆️ 打开升级界面 - 第${this.upgradeLevel}次升级`);
-        
-        // 暂停游戏
+        this.showUpgradeOptions();
+    }
+    
+    // 显示升级选项
+    showUpgradeOptions() {
+        this.isShowingUpgrade = true;
         this.scene.physics.pause();
         
-        // 创建升级UI容器
-        this.createUpgradeUI();
-        
         // 随机选择3个升级选项
-        this.showRandomUpgrades();
+        this.upgradeOptions = this.getRandomUpgrades(3);
+        
+        // 显示升级界面
+        this.createUpgradeUI();
+    }
+    
+    // 随机选择升级
+    getRandomUpgrades(count) {
+        const available = [...this.allUpgrades];
+        const selected = [];
+        
+        for (let i = 0; i < count && available.length > 0; i++) {
+            const index = Phaser.Math.Between(0, available.length - 1);
+            selected.push(available.splice(index, 1)[0]);
+        }
+        
+        return selected;
     }
     
     // 创建升级UI
     createUpgradeUI() {
-        // 创建半透明背景
-        this.upgradeUI = this.scene.add.container(0, 0);
+        const centerX = 400;
+        const centerY = 300;
         
-        // 背景遮罩
-        const background = this.scene.add.rectangle(
-            this.scene.cameras.main.centerX,
-            this.scene.cameras.main.centerY,
-            1600,
-            1216,
-            0x000000,
-            0.7
-        );
-        this.upgradeUI.add(background);
+        // 半透明背景
+        this.bg = this.scene.add.rectangle(centerX, centerY, 700, 500, 0x000000, 0.8);
         
         // 标题
-        const title = this.scene.add.text(
-            this.scene.cameras.main.centerX,
-            this.scene.cameras.main.centerY - 200,
-            '选择升级！',
-            {
-                fontSize: '48px',
-                fill: '#ffffff',
-                fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
-            }
-        );
-        title.setOrigin(0.5);
-        title.setShadow(3, 3, '#000000', 3);
-        this.upgradeUI.add(title);
-        
-        // 等级显示
-        const levelText = this.scene.add.text(
-            this.scene.cameras.main.centerX,
-            this.scene.cameras.main.centerY - 140,
-            `第 ${this.upgradeLevel} 次升级`,
-            {
-                fontSize: '24px',
-                fill: '#aaaaaa',
-                fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
-            }
-        );
-        levelText.setOrigin(0.5);
-        this.upgradeUI.add(levelText);
-    }
-    
-    // 显示3个随机升级选项
-    showRandomUpgrades() {
-        const allTypes = Object.values(UpgradeTypes);
-        
-        // 随机打乱
-        for (let i = allTypes.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [allTypes[i], allTypes[j]] = [allTypes[j], allTypes[i]];
-        }
-        
-        // 取前3个
-        const selectedTypes = allTypes.slice(0, 3);
-        
-        // 创建3个升级按钮
-        const centerX = this.scene.cameras.main.centerX;
-        const centerY = this.scene.cameras.main.centerY;
-        const spacing = 200;
-        
-        selectedTypes.forEach((type, index) => {
-            const x = centerX + (index - 1) * spacing;
-            this.createUpgradeButton(type, x, centerY);
+        this.title = this.scene.add.text(centerX, centerY - 200, '🎉 选择升级！', {
+            fontSize: '36px',
+            fill: '#FFD700',
+            fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
         });
-    }
-    
-    // 创建单个升级按钮
-    createUpgradeButton(type, x, y) {
-        // 按钮背景
-        const buttonBg = this.scene.add.rectangle(
-            x,
-            y,
-            160,
-            200,
-            UpgradeColors[type],
-            0.9
-        );
-        buttonBg.setStrokeStyle(3, 0xffffff);
-        buttonBg.setInteractive();
-        this.upgradeUI.add(buttonBg);
+        this.title.setOrigin(0.5);
+        this.title.setShadow(2, 2, '#000000', 2);
         
-        // 升级名称
-        const nameText = this.scene.add.text(
-            x,
-            y - 60,
-            UpgradeNames[type],
-            {
-                fontSize: '18px',
+        // 创建升级选项按钮
+        this.optionButtons = [];
+        for (let i = 0; i < this.upgradeOptions.length; i++) {
+            const upgrade = this.upgradeOptions[i];
+            const buttonY = centerY - 50 + i * 100;
+            
+            const button = this.scene.add.rectangle(centerX, buttonY, 500, 80, 0x333355);
+            button.setStrokeStyle(2, 0x555577);
+            button.setInteractive({ useHandCursor: true });
+            
+            const text = this.scene.add.text(centerX, buttonY, `${upgrade.icon} ${upgrade.name}\n${upgrade.description}`, {
+                fontSize: '20px',
                 fill: '#ffffff',
-                fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif',
-                align: 'center',
-                wordWrap: { width: 140 }
-            }
-        );
-        nameText.setOrigin(0.5);
-        this.upgradeUI.add(nameText);
-        
-        // 升级描述
-        const descText = this.scene.add.text(
-            x,
-            y + 20,
-            UpgradeDescriptions[type],
-            {
-                fontSize: '16px',
-                fill: '#dddddd',
                 fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif',
                 align: 'center'
-            }
-        );
-        descText.setOrigin(0.5);
-        this.upgradeUI.add(descText);
-        
-        // 鼠标悬停效果
-        buttonBg.on('pointerover', () => {
-            this.scene.tweens.add({
-                targets: buttonBg,
-                scale: 1.05,
-                duration: 100
             });
-        });
-        
-        buttonBg.on('pointerout', () => {
-            this.scene.tweens.add({
-                targets: buttonBg,
-                scale: 1,
-                duration: 100
+            text.setOrigin(0.5);
+            
+            button.on('pointerdown', () => {
+                this.selectUpgrade(i);
             });
-        });
-        
-        // 点击选择升级
-        buttonBg.on('pointerdown', () => {
-            this.selectUpgrade(type);
-        });
-        
-        // 保存按钮引用
-        this.upgradeButtons.push({
-            type: type,
-            bg: buttonBg,
-            nameText: nameText,
-            descText: descText
-        });
+            
+            button.on('pointerover', () => {
+                button.setFillStyle(0x444466);
+            });
+            
+            button.on('pointerout', () => {
+                button.setFillStyle(0x333355);
+            });
+            
+            this.optionButtons.push({ button, text });
+        }
     }
     
     // 选择升级
-    selectUpgrade(type) {
-        if (!this.isOpen) return;
+    selectUpgrade(index) {
+        const upgrade = this.upgradeOptions[index];
+        upgrade.apply();
+        this.upgrades.push(upgrade);
         
-        console.log(`⬆️ 选择升级: ${UpgradeNames[type]}`);
+        console.log(`✅ 选择了升级：${upgrade.name}`);
         
-        // 应用升级效果
-        this.applyUpgrade(type);
-        
-        // 记录已获得的升级
-        this.upgrades.push(type);
-        
-        // 关闭升级界面
         this.closeUpgradeUI();
-        
-        // 恢复游戏
         this.scene.physics.resume();
+        this.isShowingUpgrade = false;
     }
     
-    // 应用升级效果
-    applyUpgrade(type) {
-        switch (type) {
-            case UpgradeTypes.HEALTH_BOOST:
-                // 血量上限提升
-                this.maxHealth += 30;
-                if (this.player) {
-                    this.player.health = Math.min(this.player.health + 30, this.maxHealth);
-                    this.updateHealthDisplay();
-                }
-                break;
-                
-            case UpgradeTypes.ATTACK_BOOST:
-                // 攻击力提升
-                this.attackMultiplier *= 1.2;
-                break;
-                
-            case UpgradeTypes.FIRE_RATE:
-                // 射击速度提升
-                this.fireRateBonus += 50;
-                break;
-                
-            case UpgradeTypes.MOVE_SPEED:
-                // 移动速度提升
-                this.moveSpeedMultiplier *= 1.15;
-                if (this.player && this.player.body) {
-                    this.player.speed = (this.player.baseSpeed || 200) * this.moveSpeedMultiplier;
-                }
-                break;
-                
-            case UpgradeTypes.CRIT_CHANCE:
-                // 暴击率提升
-                this.critChance = Math.min(1, this.critChance + 0.1);
-                break;
-                
-            case UpgradeTypes.AREA_DAMAGE:
-                // 范围伤害
-                this.areaDamageBonus += 0.2;
-                break;
-        }
-        
-        console.log(`✨ 升级效果已应用: ${UpgradeNames[type]}`);
-    }
-    
-    // 关闭升级界面
+    // 关闭升级UI
     closeUpgradeUI() {
-        if (!this.isOpen) return;
+        if (this.bg) this.bg.destroy();
+        if (this.title) this.title.destroy();
         
-        this.isOpen = false;
-        
-        // 销毁UI
-        if (this.upgradeUI) {
-            this.upgradeUI.destroy();
-            this.upgradeUI = null;
-        }
-        
-        // 清空按钮列表
-        this.upgradeButtons = [];
-        
-        console.log('⬆️ 升级界面已关闭');
+        this.optionButtons.forEach(({ button, text }) => {
+            button.destroy();
+            text.destroy();
+        });
+        this.optionButtons = [];
     }
-    
-    // 获取当前射击冷却时间
-    getShootCooldown(baseCooldown) {
-        return Math.max(50, baseCooldown - this.fireRateBonus);
-    }
-    
-    // 获取伤害值（包含暴击计算）
-    getDamage(baseDamage) {
-        let damage = baseDamage * this.attackMultiplier;
-        
-        // 暴击判定
-        if (Math.random() < this.critChance) {
-            damage *= 2;
-            console.log('💥 暴击！');
-        }
-        
-        return damage;
-    }
-    
-    // 更新血量显示
-    updateHealthDisplay() {
-        if (this.scene.updateHealthDisplay) {
-            this.scene.updateHealthDisplay(this.player.health);
-        }
-    }
-    
-    // 获取升级统计
-    getUpgradeStats() {
-        return {
-            level: this.upgradeLevel,
-            upgrades: [...this.upgrades],
-            maxHealth: this.maxHealth,
-            attackMultiplier: this.attackMultiplier,
-            fireRateBonus: this.fireRateBonus,
-            moveSpeedMultiplier: this.moveSpeedMultiplier,
-            critChance: this.critChance,
-            areaDamageBonus: this.areaDamageBonus
-        };
-    }
-    
-    // 重置升级
-    reset() {
-        this.upgrades = [];
-        this.upgradeLevel = 0;
-        this.maxHealth = 100;
-        this.attackMultiplier = 1;
-        this.fireRateBonus = 0;
-        this.moveSpeedMultiplier = 1;
-        this.critChance = 0;
-        this.areaDamageBonus = 0;
-        
-        this.closeUpgradeUI();
-        
-        console.log('⬆️ 升级已重置');
-    }
-    
-    // 销毁
-    destroy() {
-        this.closeUpgradeUI();
-    }
-}
-
-// 导出
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        UpgradeManager,
-        UpgradeTypes,
-        UpgradeNames,
-        UpgradeDescriptions,
-        UpgradeColors
-    };
 }

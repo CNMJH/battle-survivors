@@ -30,14 +30,23 @@ let player;
 let enemies;
 let bullets;
 let playerHealth = 100;
+let maxHealth = 100; // 血量上限
 let score = 0;
 let healthText;
 let scoreText;
+let levelText; // 等级显示
 let cursors;
 let keyA, keyD, keyW, keyS;
 let lastShootTime = 0;
-const shootCooldown = 200;
+let shootCooldown = 200; // 射击冷却（可升级）
 let enemySpawnTimer = null;
+
+// 升级相关
+let upgradeManager;
+let attackMultiplier = 1; // 攻击力倍数
+let moveSpeedMultiplier = 1; // 移动速度倍数
+let critChance = 0; // 暴击率
+let areaDamageMultiplier = 1; // 范围伤害倍数
 
 // 地图相关
 let mapGenerator;
@@ -60,6 +69,9 @@ function preload() {
 function create() {
     console.log('🎮 游戏场景已创建');
     scene = this;
+    
+    // 初始化升级系统
+    upgradeManager = new UpgradeManager(this);
     
     // 生成并渲染随机地图
     mapGenerator = new MapGenerator(this);
@@ -103,9 +115,16 @@ function create() {
 // 3. 创建玩家角色
 // ==========================================
 function createPlayer() {
+    // 重置所有变量
     playerHealth = 100;
+    maxHealth = 100;
     score = 0;
     lastShootTime = 0;
+    shootCooldown = 200;
+    attackMultiplier = 1;
+    moveSpeedMultiplier = 1;
+    critChance = 0;
+    areaDamageMultiplier = 1;
     
     // 在地图中心创建玩家
     const playerX = mapGenerator.getPixelWidth() / 2;
@@ -119,6 +138,11 @@ function createPlayer() {
     // 设置摄像机跟随玩家
     scene.cameras.main.startFollow(player);
     scene.cameras.main.setBounds(0, 0, mapGenerator.getPixelWidth(), mapGenerator.getPixelHeight());
+    
+    // 更新血量显示
+    if (healthText) {
+        healthText.setText('血量: ' + playerHealth);
+    }
     
     console.log('🎮 玩家角色已创建');
 }
@@ -167,6 +191,14 @@ function createUI() {
     });
     scoreText.setShadow(2, 2, '#000000', 2);
     
+    // 等级显示
+    levelText = scene.add.text(16, 80, '等级: 1', {
+        fontSize: '18px',
+        fill: '#FFD700',
+        fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
+    });
+    levelText.setShadow(2, 2, '#000000', 2);
+    
     scene.add.text(16, 550, 'WASD/方向键移动 | 鼠标左键射击', {
         fontSize: '14px',
         fill: '#aaaaaa',
@@ -212,21 +244,29 @@ function createMinimap() {
 function update() {
     if (!player) return;
     
+    // 如果正在显示升级界面，不更新游戏
+    if (upgradeManager && upgradeManager.isShowingUpgrade) {
+        return;
+    }
+    
     const mapWidth = mapGenerator.getPixelWidth();
     const mapHeight = mapGenerator.getPixelHeight();
+    
+    const baseSpeed = 200;
+    const speed = baseSpeed * moveSpeedMultiplier;
     
     player.body.setVelocity(0);
     
     if (cursors.left.isDown || keyA.isDown) {
-        player.body.setVelocityX(-200);
+        player.body.setVelocityX(-speed);
     } else if (cursors.right.isDown || keyD.isDown) {
-        player.body.setVelocityX(200);
+        player.body.setVelocityX(speed);
     }
     
     if (cursors.up.isDown || keyW.isDown) {
-        player.body.setVelocityY(-200);
+        player.body.setVelocityY(-speed);
     } else if (cursors.down.isDown || keyS.isDown) {
-        player.body.setVelocityY(200);
+        player.body.setVelocityY(speed);
     }
     
     enemies.children.each(function(enemy) {
@@ -317,7 +357,18 @@ function hitEnemy(bullet, enemy) {
     enemy.destroy();
     score += 10;
     scoreText.setText('分数: ' + score);
-    console.log('💥 击中敌人！分数+10');
+    
+    // 击杀敌人给经验值
+    if (upgradeManager) {
+        upgradeManager.addExp(10);
+    }
+    
+    // 更新等级显示
+    if (upgradeManager && levelText) {
+        levelText.setText('等级: ' + upgradeManager.level);
+    }
+    
+    console.log('💥 击中敌人！分数+10，经验+10');
 }
 
 // ==========================================
@@ -326,7 +377,7 @@ function hitEnemy(bullet, enemy) {
 function hitPlayer(playerObj, enemy) {
     enemy.destroy();
     playerHealth -= 20;
-    healthText.setText('血量: ' + playerHealth);
+    healthText.setText('血量: ' + playerHealth + '/' + maxHealth);
     console.log('💔 被敌人击中！血量-20');
     
     if (playerHealth <= 0) {
