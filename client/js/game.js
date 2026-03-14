@@ -5,8 +5,8 @@
 // 游戏配置
 const gameConfig = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: 1600, // 扩大画布以适应瓦片地图
+    height: 1216, // 扩大画布以适应瓦片地图
     parent: 'game-container',
     backgroundColor: '#1a1a2e',
     scene: {
@@ -22,6 +22,10 @@ const gameConfig = {
         }
     }
 };
+
+// 地图生成器
+let mapGenerator = null;
+let gameMap = null;
 
 // 全局变量
 let game;
@@ -51,6 +55,11 @@ function preload() {
 function create() {
     console.log('🎮 游戏场景已创建');
     
+    // 创建并渲染随机地图
+    mapGenerator = new MapGenerator();
+    gameMap = mapGenerator.generate();
+    mapGenerator.renderInPhaser(this);
+    
     // 创建玩家
     createPlayer();
     
@@ -67,17 +76,12 @@ function create() {
     cursors = this.input.keyboard.createCursorKeys();
     spacebar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     
-    // 每隔2秒生成一个敌人
-    this.time.addEvent({
-        delay: 2000,
-        callback: spawnEnemy,
-        callbackScope: this,
-        loop: true
-    });
+    // 设置摄像机跟随玩家
+    this.cameras.main.startFollow(player);
+    this.cameras.main.setBounds(0, 0, mapGenerator.getPixelWidth(), mapGenerator.getPixelHeight());
     
-    // 设置碰撞检测
-    this.physics.add.overlap(bullets, enemies, hitEnemy, null, this);
-    this.physics.add.overlap(player, enemies, hitPlayer, null, this);
+    // 设置世界边界
+    this.physics.world.setBounds(0, 0, mapGenerator.getPixelWidth(), mapGenerator.getPixelHeight());
 }
 
 // ==========================================
