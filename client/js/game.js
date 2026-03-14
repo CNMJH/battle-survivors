@@ -41,6 +41,9 @@ let spacebar;
 let lastShootTime = 0;
 const shootCooldown = 300; // 射击冷却时间（毫秒）
 
+// 道具系统
+let itemManager = null;
+
 // ==========================================
 // 1. 预加载资源
 // ==========================================
@@ -82,6 +85,11 @@ function create() {
     
     // 设置世界边界
     this.physics.world.setBounds(0, 0, mapGenerator.getPixelWidth(), mapGenerator.getPixelHeight());
+    
+    // 初始化道具管理器
+    itemManager = new ItemManager(this);
+    itemManager.init();
+    this.itemManager = itemManager;
 }
 
 // ==========================================
@@ -165,6 +173,11 @@ function createUI() {
 // ==========================================
 function update() {
     if (!player) return;
+    
+    // 检测道具拾取
+    if (itemManager) {
+        itemManager.checkPickup(player);
+    }
     
     // 玩家移动
     player.setVelocity(0);
