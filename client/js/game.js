@@ -60,6 +60,7 @@ var mapGenerator;
 var minimap;
 var minimapPlayer;
 var minimapEnemies = [];
+var minimapItems = [];
 
 // ==========================================
 // 1. 预加载资源
@@ -302,6 +303,7 @@ function updateMinimap() {
     
     minimapPlayer.setPosition(playerMinimapX, playerMinimapY);
     
+    // 清除旧的敌人标记
     minimapEnemies.forEach(marker => {
         if (marker && marker.active) {
             marker.destroy();
@@ -309,6 +311,7 @@ function updateMinimap() {
     });
     minimapEnemies = [];
     
+    // 绘制敌人（红色）
     enemies.children.each(function(enemy) {
         const enemyMinimapX = minimapX + (enemy.x / mapWidth) * minimapWidth;
         const enemyMinimapY = minimapY + 25 + (enemy.y / mapHeight) * (minimapHeight - 30);
@@ -317,6 +320,28 @@ function updateMinimap() {
         enemyMarker.setScrollFactor(0); // 固定在屏幕上
         minimapEnemies.push(enemyMarker);
     }, this);
+    
+    // 清除旧的道具标记
+    minimapItems.forEach(marker => {
+        if (marker && marker.active) {
+            marker.destroy();
+        }
+    });
+    minimapItems = [];
+    
+    // 绘制道具（黄色）- 新增！
+    if (itemManager && itemManager.items) {
+        itemManager.items.forEach(item => {
+            if (item && item.active) {
+                const itemMinimapX = minimapX + (item.x / mapWidth) * minimapWidth;
+                const itemMinimapY = minimapY + 25 + (item.y / mapHeight) * (minimapHeight - 30);
+                
+                const itemMarker = scene.add.circle(itemMinimapX, itemMinimapY, 2, 0xFFD700);
+                itemMarker.setScrollFactor(0); // 固定在屏幕上
+                minimapItems.push(itemMarker);
+            }
+        });
+    }
 }
 
 // ==========================================
