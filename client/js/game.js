@@ -23,43 +23,43 @@ const gameConfig = {
     }
 };
 
-// 全局变量（去掉let，让Item.js能访问）
-game;
-scene;
-player;
-enemies;
-bullets;
-playerHealth = 100;
-maxHealth = 100; // 血量上限
-score = 0;
-healthText;
-scoreText;
-levelText; // 等级显示
-cursors;
-keyA, keyD, keyW, keyS;
-lastShootTime = 0;
-shootCooldown = 200; // 射击冷却（可升级）
-enemySpawnTimer = null;
-isInLobby = true; // 是否在大厅界面
-lobbyElements = []; // 大厅界面元素
+// 全局变量（用var声明，文件末尾挂载到window）
+var game;
+var scene;
+var player;
+var enemies;
+var bullets;
+var playerHealth = 100;
+var maxHealth = 100; // 血量上限
+var score = 0;
+var healthText;
+var scoreText;
+var levelText; // 等级显示
+var cursors;
+var keyA, keyD, keyW, keyS;
+var lastShootTime = 0;
+var shootCooldown = 200; // 射击冷却（可升级）
+var enemySpawnTimer = null;
+var isInLobby = true; // 是否在大厅界面
+var lobbyElements = []; // 大厅界面元素
 
 // 升级相关
-upgradeManager;
-attackMultiplier = 1; // 攻击力倍数
-moveSpeedMultiplier = 1; // 移动速度倍数
-critChance = 0; // 暴击率
-areaDamageMultiplier = 1; // 范围伤害倍数
+var upgradeManager;
+var attackMultiplier = 1; // 攻击力倍数
+var moveSpeedMultiplier = 1; // 移动速度倍数
+var critChance = 0; // 暴击率
+var areaDamageMultiplier = 1; // 范围伤害倍数
 
 // 道具相关
-itemManager;
+var itemManager;
 
 // 地图相关
-mapGenerator;
+var mapGenerator;
 
 // 小地图相关
-minimap;
-minimapPlayer;
-minimapEnemies = [];
+var minimap;
+var minimapPlayer;
+var minimapEnemies = [];
 
 // ==========================================
 // 1. 预加载资源
@@ -246,7 +246,7 @@ function update() {
     
     // 检查道具拾取
     if (itemManager) {
-        itemManager.checkPickup(player);
+        itemManager.checkPickup();
     }
     
     const mapWidth = mapGenerator.getPixelWidth();
@@ -571,7 +571,47 @@ function startGame() {
         loop: true
     });
     
+    // 把所有变量挂载到window对象上，让Item.js能访问
+    exposeGlobalsToWindow();
+    
     console.log('✅ 游戏初始化完成');
+}
+
+// ==========================================
+// 把所有变量挂载到window对象上，让Item.js能访问
+// ==========================================
+function exposeGlobalsToWindow() {
+    window.game = game;
+    window.scene = scene;
+    window.player = player;
+    window.enemies = enemies;
+    window.bullets = bullets;
+    window.playerHealth = playerHealth;
+    window.maxHealth = maxHealth;
+    window.score = score;
+    window.healthText = healthText;
+    window.scoreText = scoreText;
+    window.levelText = levelText;
+    window.cursors = cursors;
+    window.keyA = keyA;
+    window.keyD = keyD;
+    window.keyW = keyW;
+    window.keyS = keyS;
+    window.lastShootTime = lastShootTime;
+    window.shootCooldown = shootCooldown;
+    window.enemySpawnTimer = enemySpawnTimer;
+    window.isInLobby = isInLobby;
+    window.lobbyElements = lobbyElements;
+    window.upgradeManager = upgradeManager;
+    window.attackMultiplier = attackMultiplier;
+    window.moveSpeedMultiplier = moveSpeedMultiplier;
+    window.critChance = critChance;
+    window.areaDamageMultiplier = areaDamageMultiplier;
+    window.itemManager = itemManager;
+    window.mapGenerator = mapGenerator;
+    window.minimap = minimap;
+    window.minimapPlayer = minimapPlayer;
+    window.minimapEnemies = minimapEnemies;
 }
 
 // ==========================================

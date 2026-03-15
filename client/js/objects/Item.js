@@ -32,13 +32,13 @@ class ItemManager {
             description: '恢复30点血量',
             icon: '❤️',
             apply: () => {
-                playerHealth = Math.min(
-                    playerHealth + 30,
-                    maxHealth
+                window.playerHealth = Math.min(
+                    window.playerHealth + 30,
+                    window.maxHealth
                 );
-                if (healthText) {
-                    healthText.setText(
-                        '血量: ' + playerHealth + '/' + maxHealth
+                if (window.healthText) {
+                    window.healthText.setText(
+                        '血量: ' + window.playerHealth + '/' + window.maxHealth
                     );
                 }
             }
@@ -49,7 +49,7 @@ class ItemManager {
             description: '本次游戏攻击力+50%',
             icon: '⚔️',
             apply: () => {
-                attackMultiplier = (attackMultiplier || 1) * 1.5;
+                window.attackMultiplier = (window.attackMultiplier || 1) * 1.5;
             }
         },
         {
@@ -58,7 +58,7 @@ class ItemManager {
             description: '本次游戏移动速度+30%',
             icon: '👟',
             apply: () => {
-                moveSpeedMultiplier = (moveSpeedMultiplier || 1) * 1.3;
+                window.moveSpeedMultiplier = (window.moveSpeedMultiplier || 1) * 1.3;
             }
         },
         {
@@ -67,7 +67,7 @@ class ItemManager {
             description: '本次游戏子弹伤害+40%',
             icon: '💥',
             apply: () => {
-                attackMultiplier = (attackMultiplier || 1) * 1.4;
+                window.attackMultiplier = (window.attackMultiplier || 1) * 1.4;
             }
         },
         {
@@ -76,7 +76,7 @@ class ItemManager {
             description: '击杀敌人时，周围敌人也受伤害',
             icon: '💫',
             apply: () => {
-                areaDamageMultiplier = (areaDamageMultiplier || 1) * 2;
+                window.areaDamageMultiplier = (window.areaDamageMultiplier || 1) * 2;
             }
         }
     ];
@@ -85,14 +85,14 @@ class ItemManager {
     spawnItem() {
         console.log('🎁 尝试生成道具...');
         
-        // 使用全局mapGenerator变量
-        if (typeof mapGenerator === 'undefined' || !mapGenerator) {
+        // 使用window上的全局变量
+        if (typeof window.mapGenerator === 'undefined' || !window.mapGenerator) {
             console.log('❌ mapGenerator不存在，无法生成道具');
             return;
         }
         
-        const mapWidth = mapGenerator.getPixelWidth();
-        const mapHeight = mapGenerator.getPixelHeight();
+        const mapWidth = window.mapGenerator.getPixelWidth();
+        const mapHeight = window.mapGenerator.getPixelHeight();
         
         console.log(`🗺️ 地图尺寸：${mapWidth}x${mapHeight}`);
         
@@ -108,8 +108,8 @@ class ItemManager {
             attempts++;
         } while (
             attempts < 50 &&
-            this.scene.player &&
-            Phaser.Math.Distance.Between(x, y, this.scene.player.x, this.scene.player.y) < 150
+            window.player &&
+            Phaser.Math.Distance.Between(x, y, window.player.x, window.player.y) < 150
         );
         
         console.log(`📍 道具位置：(${x}, ${y})，类型：${itemType.name}`);
@@ -136,13 +136,16 @@ class ItemManager {
     }
     
     // 检查道具拾取
-    checkPickup(player) {
+    checkPickup() {
+        // 使用window上的全局player
+        if (!window.player) return;
+        
         for (let i = this.items.length - 1; i >= 0; i--) {
             const item = this.items[i];
             
             // 检测碰撞
             const distance = Phaser.Math.Distance.Between(
-                player.x, player.y,
+                window.player.x, window.player.y,
                 item.x, item.y
             );
             
