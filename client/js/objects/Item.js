@@ -32,13 +32,13 @@ class ItemManager {
             description: '恢复30点血量',
             icon: '❤️',
             apply: () => {
-                this.scene.playerHealth = Math.min(
-                    this.scene.playerHealth + 30,
-                    this.scene.maxHealth
+                playerHealth = Math.min(
+                    playerHealth + 30,
+                    maxHealth
                 );
-                if (this.scene.healthText) {
-                    this.scene.healthText.setText(
-                        '血量: ' + this.scene.playerHealth + '/' + this.scene.maxHealth
+                if (healthText) {
+                    healthText.setText(
+                        '血量: ' + playerHealth + '/' + maxHealth
                     );
                 }
             }
@@ -49,7 +49,7 @@ class ItemManager {
             description: '本次游戏攻击力+50%',
             icon: '⚔️',
             apply: () => {
-                this.scene.attackMultiplier = (this.scene.attackMultiplier || 1) * 1.5;
+                attackMultiplier = (attackMultiplier || 1) * 1.5;
             }
         },
         {
@@ -58,7 +58,7 @@ class ItemManager {
             description: '本次游戏移动速度+30%',
             icon: '👟',
             apply: () => {
-                this.scene.moveSpeedMultiplier = (this.scene.moveSpeedMultiplier || 1) * 1.3;
+                moveSpeedMultiplier = (moveSpeedMultiplier || 1) * 1.3;
             }
         },
         {
@@ -67,7 +67,7 @@ class ItemManager {
             description: '本次游戏子弹伤害+40%',
             icon: '💥',
             apply: () => {
-                this.scene.attackMultiplier = (this.scene.attackMultiplier || 1) * 1.4;
+                attackMultiplier = (attackMultiplier || 1) * 1.4;
             }
         },
         {
@@ -76,7 +76,7 @@ class ItemManager {
             description: '击杀敌人时，周围敌人也受伤害',
             icon: '💫',
             apply: () => {
-                this.scene.areaDamageMultiplier = (this.scene.areaDamageMultiplier || 1) * 2;
+                areaDamageMultiplier = (areaDamageMultiplier || 1) * 2;
             }
         }
     ];
@@ -85,13 +85,14 @@ class ItemManager {
     spawnItem() {
         console.log('🎁 尝试生成道具...');
         
-        if (!this.scene.mapGenerator) {
+        // 使用全局mapGenerator变量
+        if (typeof mapGenerator === 'undefined' || !mapGenerator) {
             console.log('❌ mapGenerator不存在，无法生成道具');
             return;
         }
         
-        const mapWidth = this.scene.mapGenerator.getPixelWidth();
-        const mapHeight = this.scene.mapGenerator.getPixelHeight();
+        const mapWidth = mapGenerator.getPixelWidth();
+        const mapHeight = mapGenerator.getPixelHeight();
         
         console.log(`🗺️ 地图尺寸：${mapWidth}x${mapHeight}`);
         

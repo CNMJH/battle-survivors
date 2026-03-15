@@ -23,43 +23,43 @@ const gameConfig = {
     }
 };
 
-// 全局变量
-let game;
-let scene;
-let player;
-let enemies;
-let bullets;
-let playerHealth = 100;
-let maxHealth = 100; // 血量上限
-let score = 0;
-let healthText;
-let scoreText;
-let levelText; // 等级显示
-let cursors;
-let keyA, keyD, keyW, keyS;
-let lastShootTime = 0;
-let shootCooldown = 200; // 射击冷却（可升级）
-let enemySpawnTimer = null;
-let isInLobby = true; // 是否在大厅界面
-let lobbyElements = []; // 大厅界面元素
+// 全局变量（去掉let，让Item.js能访问）
+game;
+scene;
+player;
+enemies;
+bullets;
+playerHealth = 100;
+maxHealth = 100; // 血量上限
+score = 0;
+healthText;
+scoreText;
+levelText; // 等级显示
+cursors;
+keyA, keyD, keyW, keyS;
+lastShootTime = 0;
+shootCooldown = 200; // 射击冷却（可升级）
+enemySpawnTimer = null;
+isInLobby = true; // 是否在大厅界面
+lobbyElements = []; // 大厅界面元素
 
 // 升级相关
-let upgradeManager;
-let attackMultiplier = 1; // 攻击力倍数
-let moveSpeedMultiplier = 1; // 移动速度倍数
-let critChance = 0; // 暴击率
-let areaDamageMultiplier = 1; // 范围伤害倍数
+upgradeManager;
+attackMultiplier = 1; // 攻击力倍数
+moveSpeedMultiplier = 1; // 移动速度倍数
+critChance = 0; // 暴击率
+areaDamageMultiplier = 1; // 范围伤害倍数
 
 // 道具相关
-let itemManager;
+itemManager;
 
 // 地图相关
-let mapGenerator;
+mapGenerator;
 
 // 小地图相关
-let minimap;
-let minimapPlayer;
-let minimapEnemies = [];
+minimap;
+minimapPlayer;
+minimapEnemies = [];
 
 // ==========================================
 // 1. 预加载资源
