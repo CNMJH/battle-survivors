@@ -48,6 +48,9 @@ let moveSpeedMultiplier = 1; // 移动速度倍数
 let critChance = 0; // 暴击率
 let areaDamageMultiplier = 1; // 范围伤害倍数
 
+// 道具相关
+let itemManager;
+
 // 地图相关
 let mapGenerator;
 
@@ -72,6 +75,10 @@ function create() {
     
     // 初始化升级系统
     upgradeManager = new UpgradeManager(this);
+    
+    // 初始化道具系统
+    itemManager = new ItemManager(this);
+    itemManager.init();
     
     // 生成并渲染随机地图
     mapGenerator = new MapGenerator(this);
@@ -125,6 +132,12 @@ function createPlayer() {
     moveSpeedMultiplier = 1;
     critChance = 0;
     areaDamageMultiplier = 1;
+    
+    // 停止并重新初始化道具系统
+    if (itemManager) {
+        itemManager.stop();
+        itemManager.init();
+    }
     
     // 在地图中心创建玩家
     const playerX = mapGenerator.getPixelWidth() / 2;
@@ -247,6 +260,11 @@ function update() {
     // 如果正在显示升级界面，不更新游戏
     if (upgradeManager && upgradeManager.isShowingUpgrade) {
         return;
+    }
+    
+    // 检查道具拾取
+    if (itemManager) {
+        itemManager.checkPickup(player);
     }
     
     const mapWidth = mapGenerator.getPixelWidth();
@@ -393,6 +411,11 @@ function gameOver() {
     
     if (enemySpawnTimer) {
         enemySpawnTimer.remove();
+    }
+    
+    // 停止道具生成
+    if (itemManager) {
+        itemManager.stop();
     }
     
     scene.physics.pause();
