@@ -62,6 +62,10 @@ var minimapPlayer;
 var minimapEnemies = [];
 var minimapItems = [];
 
+// 网络相关
+var networkManager;
+var otherPlayers = []; // 其他玩家的游戏对象
+
 // ==========================================
 // 1. 预加载资源
 // ==========================================
@@ -283,6 +287,11 @@ function update() {
     }, this);
     
     updateMinimap();
+    
+    // 发送玩家位置到服务器（多人联机）
+    if (networkManager && networkManager.isConnected() && player) {
+        networkManager.sendPlayerPosition(player.x, player.y);
+    }
 }
 
 // ==========================================
@@ -556,6 +565,35 @@ function startGame() {
     itemManager = new ItemManager(scene);
     itemManager.init();
     
+    // 初始化网络管理器（多人联机）
+    networkManager = new NetworkManager(scene);
+    networkManager.connect('ws://localhost:2567');
+    
+    // 注册网络事件回调
+    networkManager.scene.onConnected = (message) => {
+        console.log('✅ 已连接到服务器，玩家ID:', message.playerId);
+        
+        // 发送join消息加入游戏
+        networkManager.send({
+            type: 'join',
+            name: '玩家' + message.playerId.slice(-4)
+        });
+    };
+    
+    networkManager.scene.onPlayerJoined = (message) => {
+        console.log('👤 新玩家加入:', message.player);
+        createOtherPlayer(message.player);
+    };
+    
+    networkManager.scene.onPlayerLeft = (message) => {
+        console.log('👋 玩家离开:', message.playerId);
+        removeOtherPlayer(message.playerId);
+    };
+    
+    networkManager.scene.onPlayerMoved = (message) => {
+        updateOtherPlayerPosition(message);
+    };
+    
     // 生成并渲染随机地图
     mapGenerator = new MapGenerator(scene);
     mapGenerator.generate();
@@ -600,6 +638,72 @@ function startGame() {
     exposeGlobalsToWindow();
     
     console.log('✅ 游戏初始化完成');
+}
+
+// ==========================================
+// 13. 创建其他玩家
+// ==========================================
+function createOtherPlayer(playerData) {
+    if (!scene) return;
+    
+    const otherPlayer = scene.add.rectangle(playerData.x, playerData.y, 28, 28, '#9B59B6');
+    otherPlayer.setStrokeStyle(2, 0xffffff);
+    otherPlayer.playerId = playerData.id;
+    
+    // 添加玩家名字
+    const nameText = scene.add.text(playerData.x, playerData.y - 25, `玩家${playerData.id.slice(0, 4)}`, {
+        fontSize: '12px',
+        fill: '#ffffff'
+    });
+    nameText.setOrigin(0.5);
+    otherPlayer.nameText = nameText;
+    
+    otherPlayers.push(otherPlayer);
+    console.log(`✅ 已创建其他玩家: ${playerData.id}`);
+}
+
+// ==========================================
+// 14. 移除其他玩家
+// ==========================================
+function removeOtherPlayer(playerId) {
+    const index = otherPlayers.findIndex(p => p.playerId === playerId);
+    if (index !== -1) {
+        const player = otherPlayers[index];
+        if (player.nameText) {
+            player.nameText.destroy();
+        }
+        player.destroy();
+        otherPlayers.splice(index, 1);
+        console.log(`❌ 已移除其他玩家: ${playerId}`);
+    }
+}
+
+// ==========================================
+// 15. 更新其他玩家位置
+// ==========================================
+function updateOtherPlayerPosition(message) {
+    const player = otherPlayers.find(p => p.playerId === message.playerId);
+    if (player) {
+        // 平滑移动
+        scene.tweens.add({
+            targets: player,
+            x: message.x,
+            y: message.y,
+            duration: 100,
+            ease: 'Linear'
+        });
+        
+        // 更新名字位置
+        if (player.nameText) {
+            scene.tweens.add({
+                targets: player.nameText,
+                x: message.x,
+                y: message.y - 25,
+                duration: 100,
+                ease: 'Linear'
+            });
+        }
+    }
 }
 
 // ==========================================
