@@ -341,7 +341,7 @@ function shootBullet() {
     
     const angle = Phaser.Math.Angle.Between(
         player.x, player.y,
-        scene.input.activePointer.x, scene.input.activePointer.y
+        scene.input.activePointer.worldX, scene.input.activePointer.worldY
     );
     
     scene.physics.velocityFromRotation(angle, 500, bullet.body.velocity);
