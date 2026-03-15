@@ -13,13 +13,15 @@ class ItemManager {
     init() {
         console.log('🎁 道具系统初始化');
         
-        // 每5秒生成一个道具
+        // 每5秒生成一个道具（先改成3秒方便测试）
         this.itemSpawnTimer = this.scene.time.addEvent({
-            delay: 5000,
+            delay: 3000,
             callback: this.spawnItem,
             callbackScope: this,
             loop: true
         });
+        
+        console.log('⏰ 道具生成定时器已启动，每3秒生成一个道具');
     }
     
     // 道具定义

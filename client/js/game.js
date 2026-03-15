@@ -418,6 +418,7 @@ function gameOver() {
     });
     gameOverText.setOrigin(0.5);
     gameOverText.setShadow(3, 3, '#000000', 3);
+    gameOverText.setScrollFactor(0); // 固定在屏幕上
     
     const finalScoreText = scene.add.text(400, 320, '最终分数: ' + score, {
         fontSize: '28px',
@@ -426,6 +427,7 @@ function gameOver() {
     });
     finalScoreText.setOrigin(0.5);
     finalScoreText.setShadow(2, 2, '#000000', 2);
+    finalScoreText.setScrollFactor(0); // 固定在屏幕上
     
     const restartText = scene.add.text(400, 380, '刷新页面重新开始', {
         fontSize: '20px',
@@ -433,6 +435,7 @@ function gameOver() {
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
     });
     restartText.setOrigin(0.5);
+    restartText.setScrollFactor(0); // 固定在屏幕上
 }
 
 // ==========================================
