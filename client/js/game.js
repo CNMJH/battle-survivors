@@ -81,30 +81,6 @@ function create() {
     } else {
         startGame();
     }
-    
-    cursors = this.input.keyboard.createCursorKeys();
-    keyA = this.input.keyboard.addKey('A');
-    keyD = this.input.keyboard.addKey('D');
-    keyW = this.input.keyboard.addKey('W');
-    keyS = this.input.keyboard.addKey('S');
-    
-    this.input.on('pointerdown', function(pointer) {
-        if (pointer.leftButtonDown()) {
-            shootBullet();
-        }
-    });
-    
-    this.physics.add.overlap(bullets, enemies, hitEnemy, null, this);
-    this.physics.add.overlap(player, enemies, hitPlayer, null, this);
-    
-    enemySpawnTimer = this.time.addEvent({
-        delay: 2000,
-        callback: spawnEnemy,
-        callbackScope: this,
-        loop: true
-    });
-    
-    console.log('✅ 游戏初始化完成');
 }
 
 // ==========================================
@@ -153,6 +129,11 @@ function createPlayer() {
 // 4. 生成敌人
 // ==========================================
 function spawnEnemy() {
+    // 如果在大厅界面或mapGenerator未初始化，不生成敌人
+    if (isInLobby || !mapGenerator) {
+        return;
+    }
+    
     const mapWidth = mapGenerator.getPixelWidth();
     const mapHeight = mapGenerator.getPixelHeight();
     
