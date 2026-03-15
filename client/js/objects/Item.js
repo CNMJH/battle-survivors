@@ -31,7 +31,6 @@ class ItemManager {
             name: '血量恢复',
             description: '恢复30点血量',
             icon: '❤️',
-            color: 0xFF6B6B,
             apply: () => {
                 this.scene.playerHealth = Math.min(
                     this.scene.playerHealth + 30,
@@ -49,7 +48,6 @@ class ItemManager {
             name: '武器升级',
             description: '本次游戏攻击力+50%',
             icon: '⚔️',
-            color: 0xFFD700,
             apply: () => {
                 this.scene.attackMultiplier = (this.scene.attackMultiplier || 1) * 1.5;
             }
@@ -59,7 +57,6 @@ class ItemManager {
             name: '速度提升',
             description: '本次游戏移动速度+30%',
             icon: '👟',
-            color: 0x4ECDC4,
             apply: () => {
                 this.scene.moveSpeedMultiplier = (this.scene.moveSpeedMultiplier || 1) * 1.3;
             }
@@ -69,7 +66,6 @@ class ItemManager {
             name: '伤害增强',
             description: '本次游戏子弹伤害+40%',
             icon: '💥',
-            color: 0xFF4500,
             apply: () => {
                 this.scene.attackMultiplier = (this.scene.attackMultiplier || 1) * 1.4;
             }
@@ -79,7 +75,6 @@ class ItemManager {
             name: '范围攻击',
             description: '击杀敌人时，周围敌人也受伤害',
             icon: '💫',
-            color: 0x9400D3,
             apply: () => {
                 this.scene.areaDamageMultiplier = (this.scene.areaDamageMultiplier || 1) * 2;
             }
@@ -88,10 +83,17 @@ class ItemManager {
     
     // 生成道具
     spawnItem() {
-        if (!this.scene.mapGenerator) return;
+        console.log('🎁 尝试生成道具...');
+        
+        if (!this.scene.mapGenerator) {
+            console.log('❌ mapGenerator不存在，无法生成道具');
+            return;
+        }
         
         const mapWidth = this.scene.mapGenerator.getPixelWidth();
         const mapHeight = this.scene.mapGenerator.getPixelHeight();
+        
+        console.log(`🗺️ 地图尺寸：${mapWidth}x${mapHeight}`);
         
         // 随机选择道具类型
         const itemType = this.itemTypes[Phaser.Math.Between(0, this.itemTypes.length - 1)];
@@ -109,14 +111,16 @@ class ItemManager {
             Phaser.Math.Distance.Between(x, y, this.scene.player.x, this.scene.player.y) < 150
         );
         
-        // 创建道具
-        const item = this.scene.add.circle(x, y, 16, itemType.color);
+        console.log(`📍 道具位置：(${x}, ${y})，类型：${itemType.name}`);
+        
+        // 创建道具（黄色小点）
+        const item = this.scene.add.circle(x, y, 12, 0xFFD700);
         item.setStrokeStyle(2, 0xffffff);
         item.itemType = itemType;
         
         // 添加道具图标文字
         const iconText = this.scene.add.text(x, y, itemType.icon, {
-            fontSize: '16px'
+            fontSize: '14px'
         });
         iconText.setOrigin(0.5);
         item.iconText = iconText;
@@ -127,7 +131,7 @@ class ItemManager {
         // 添加到道具列表
         this.items.push(item);
         
-        console.log(`🎁 生成道具：${itemType.name}`);
+        console.log(`✅ 道具生成成功：${itemType.name}，当前道具数：${this.items.length}`);
     }
     
     // 检查道具拾取
