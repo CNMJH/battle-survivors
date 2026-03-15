@@ -203,7 +203,17 @@ class NetworkManager {
     // 处理房间创建
     handleRoomCreated(message) {
         console.log('🏠 房间已创建:', message);
-        this.roomId = message.roomId;
+        this.roomId = message.room.id;
+        
+        // 更新其他玩家列表
+        this.players.clear();
+        if (message.room.players) {
+            message.room.players.forEach(player => {
+                if (player.id !== this.playerId) {
+                    this.players.set(player.id, player);
+                }
+            });
+        }
         
         if (this.scene.onRoomCreated) {
             this.scene.onRoomCreated(message);
@@ -213,12 +223,12 @@ class NetworkManager {
     // 处理加入房间
     handleRoomJoined(message) {
         console.log('🏠 已加入房间:', message);
-        this.roomId = message.roomId;
+        this.roomId = message.room.id;
         
         // 更新其他玩家列表
         this.players.clear();
-        if (message.players) {
-            message.players.forEach(player => {
+        if (message.room.players) {
+            message.room.players.forEach(player => {
                 if (player.id !== this.playerId) {
                     this.players.set(player.id, player);
                 }
@@ -254,13 +264,14 @@ class NetworkManager {
     
     // 处理玩家移动
     handlePlayerMoved(message) {
-        if (message.playerId === this.playerId) return;
+        const playerData = message.player;
+        if (!playerData || playerData.id === this.playerId) return;
         
-        const player = this.players.get(message.playerId);
+        const player = this.players.get(playerData.id);
         if (player) {
             // 平滑移动（插值）
-            player.targetX = message.x;
-            player.targetY = message.y;
+            player.targetX = playerData.x;
+            player.targetY = playerData.y;
             player.lastUpdate = Date.now();
         }
         

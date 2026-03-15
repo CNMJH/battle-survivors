@@ -36,6 +36,7 @@ console.log('🎮 WebSocket服务器已创建');
 // ==========================================
 const rooms = new Map(); // 房间列表 { roomId: Room }
 const playerRooms = new Map(); // 玩家所在房间 { playerId: roomId }
+const players = new Map(); // 所有玩家 { playerId: Player }
 
 // 房间类
 class Room {
@@ -175,8 +176,6 @@ wss.on('connection', (ws) => {
     
     console.log(`🔌 新玩家连接: ${playerId}`);
     
-    let currentPlayer = null;
-    
     // 处理客户端消息
     ws.on('message', (data) => {
         try {
@@ -205,6 +204,11 @@ function handleMessage(ws, playerId, message) {
         // 玩家加入
         case 'join':
             handlePlayerJoin(ws, playerId, message);
+            break;
+            
+        // 心跳检测
+        case 'ping':
+            sendMessage(ws, { type: 'pong' });
             break;
             
         // 创建房间
@@ -247,8 +251,8 @@ function handlePlayerJoin(ws, playerId, message) {
     const playerName = message.name || '玩家' + playerId;
     const player = new Player(playerId, playerName, ws);
     
-    // 保存玩家引用
-    currentPlayer = player;
+    // 保存玩家引用到全局Map
+    players.set(playerId, player);
     
     console.log(`✅ 玩家 ${playerName} (${playerId}) 已登录`);
     
@@ -262,6 +266,7 @@ function handlePlayerJoin(ws, playerId, message) {
 
 // 处理创建房间
 function handleCreateRoom(ws, playerId, message) {
+    const currentPlayer = players.get(playerId);
     if (!currentPlayer) return;
     
     // 生成房间ID
@@ -286,6 +291,7 @@ function handleCreateRoom(ws, playerId, message) {
 
 // 处理加入房间
 function handleJoinRoom(ws, playerId, message) {
+    const currentPlayer = players.get(playerId);
     if (!currentPlayer) return;
     
     const roomId = message.roomId;
@@ -324,6 +330,7 @@ function handleJoinRoom(ws, playerId, message) {
 
 // 处理离开房间
 function handleLeaveRoom(ws, playerId, message) {
+    const currentPlayer = players.get(playerId);
     if (!currentPlayer) return;
     
     const roomId = playerRooms.get(playerId);
@@ -344,6 +351,7 @@ function handleLeaveRoom(ws, playerId, message) {
 
 // 处理玩家移动
 function handlePlayerMove(ws, playerId, message) {
+    const currentPlayer = players.get(playerId);
     if (!currentPlayer) return;
     
     const roomId = playerRooms.get(playerId);
@@ -364,6 +372,7 @@ function handlePlayerMove(ws, playerId, message) {
 
 // 处理玩家射击
 function handlePlayerShoot(ws, playerId, message) {
+    const currentPlayer = players.get(playerId);
     if (!currentPlayer) return;
     
     const roomId = playerRooms.get(playerId);
@@ -389,19 +398,22 @@ function handleGetRooms(ws, playerId, message) {
 // 处理玩家断开连接
 function handleDisconnect(playerId) {
     const roomId = playerRooms.get(playerId);
-    if (!roomId) return;
-    
-    const room = rooms.get(roomId);
-    if (room) {
-        // 通知房间内其他玩家有玩家离开
-        room.broadcast({
-            type: 'playerLeft',
-            playerId: playerId
-        });
-        
-        room.removePlayer(playerId);
-        playerRooms.delete(playerId);
+    if (roomId) {
+        const room = rooms.get(roomId);
+        if (room) {
+            // 通知房间内其他玩家有玩家离开
+            room.broadcast({
+                type: 'playerLeft',
+                playerId: playerId
+            });
+            
+            room.removePlayer(playerId);
+            playerRooms.delete(playerId);
+        }
     }
+    
+    // 从全局玩家Map中移除
+    players.delete(playerId);
 }
 
 // 发送消息给客户端

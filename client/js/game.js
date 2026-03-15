@@ -35,6 +35,7 @@ var score = 0;
 var healthText;
 var scoreText;
 var levelText; // 等级显示
+var playerCountText; // 联机玩家数量显示
 var cursors;
 var keyA, keyD, keyW, keyS;
 var lastShootTime = 0;
@@ -189,6 +190,15 @@ function createUI() {
     });
     levelText.setShadow(2, 2, '#000000', 2);
     levelText.setScrollFactor(0); // 固定在屏幕上
+    
+    // 联机玩家数量显示
+    playerCountText = scene.add.text(16, 112, '玩家: 1/4', {
+        fontSize: '16px',
+        fill: '#4ECDC4',
+        fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
+    });
+    playerCountText.setShadow(2, 2, '#000000', 2);
+    playerCountText.setScrollFactor(0); // 固定在屏幕上
     
     const helpText = scene.add.text(16, 550, 'WASD/方向键移动 | 鼠标左键射击', {
         fontSize: '14px',
@@ -578,16 +588,67 @@ function startGame() {
             type: 'join',
             name: '玩家' + message.playerId.slice(-4)
         });
+        
+        // 等待一小会儿，然后获取房间列表
+        setTimeout(() => {
+            networkManager.getRooms();
+        }, 500);
+    };
+    
+    networkManager.scene.onNetworkMessage = (message) => {
+        // 处理房间列表
+        if (message.type === 'roomList') {
+            console.log('📋 收到房间列表:', message.rooms);
+            
+            if (message.rooms.length > 0) {
+                // 如果有房间，加入第一个房间
+                const firstRoom = message.rooms[0];
+                console.log(`🏠 加入房间: ${firstRoom.id}`);
+                networkManager.joinRoom(firstRoom.id);
+            } else {
+                // 如果没有房间，创建一个新房间
+                console.log('🏠 创建新房间');
+                networkManager.createRoom();
+            }
+        }
+    };
+    
+    networkManager.scene.onRoomCreated = (message) => {
+        console.log('🏠 房间已创建:', message);
+        // 房间创建时，可能已经有其他玩家了（虽然通常是第一个）
+        if (message.room && message.room.players) {
+            message.room.players.forEach(playerData => {
+                if (playerData.id !== networkManager.getPlayerId()) {
+                    createOtherPlayer(playerData);
+                }
+            });
+        }
+        updatePlayerCount();
+    };
+    
+    networkManager.scene.onRoomJoined = (message) => {
+        console.log('🏠 已加入房间:', message);
+        // 加入房间时，创建已经在房间里的其他玩家
+        if (message.room && message.room.players) {
+            message.room.players.forEach(playerData => {
+                if (playerData.id !== networkManager.getPlayerId()) {
+                    createOtherPlayer(playerData);
+                }
+            });
+        }
+        updatePlayerCount();
     };
     
     networkManager.scene.onPlayerJoined = (message) => {
         console.log('👤 新玩家加入:', message.player);
         createOtherPlayer(message.player);
+        updatePlayerCount();
     };
     
     networkManager.scene.onPlayerLeft = (message) => {
         console.log('👋 玩家离开:', message.playerId);
         removeOtherPlayer(message.playerId);
+        updatePlayerCount();
     };
     
     networkManager.scene.onPlayerMoved = (message) => {
@@ -607,6 +668,9 @@ function startGame() {
     enemies = scene.physics.add.group();
     bullets = scene.physics.add.group();
     createUI();
+    
+    // 初始化玩家数量显示
+    updatePlayerCount();
     
     // 设置键盘输入
     cursors = scene.input.keyboard.createCursorKeys();
@@ -682,13 +746,16 @@ function removeOtherPlayer(playerId) {
 // 15. 更新其他玩家位置
 // ==========================================
 function updateOtherPlayerPosition(message) {
-    const player = otherPlayers.find(p => p.playerId === message.playerId);
+    const playerData = message.player;
+    if (!playerData) return;
+    
+    const player = otherPlayers.find(p => p.playerId === playerData.id);
     if (player) {
         // 平滑移动
         scene.tweens.add({
             targets: player,
-            x: message.x,
-            y: message.y,
+            x: playerData.x,
+            y: playerData.y,
             duration: 100,
             ease: 'Linear'
         });
@@ -697,13 +764,25 @@ function updateOtherPlayerPosition(message) {
         if (player.nameText) {
             scene.tweens.add({
                 targets: player.nameText,
-                x: message.x,
-                y: message.y - 25,
+                x: playerData.x,
+                y: playerData.y - 25,
                 duration: 100,
                 ease: 'Linear'
             });
         }
     }
+}
+
+// ==========================================
+// 16. 更新玩家数量显示
+// ==========================================
+function updatePlayerCount() {
+    if (!playerCountText) return;
+    
+    // 总玩家数 = 自己 + 其他玩家
+    const totalPlayers = 1 + otherPlayers.length;
+    playerCountText.setText(`玩家: ${totalPlayers}/4`);
+    console.log(`👥 更新玩家数量: ${totalPlayers}/4`);
 }
 
 // ==========================================
@@ -721,6 +800,7 @@ function exposeGlobalsToWindow() {
     window.healthText = healthText;
     window.scoreText = scoreText;
     window.levelText = levelText;
+    window.playerCountText = playerCountText;
     window.cursors = cursors;
     window.keyA = keyA;
     window.keyD = keyD;
