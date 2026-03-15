@@ -479,6 +479,7 @@ function createLobbyUI() {
     const startButton = scene.add.rectangle(centerX, centerY + 50, 300, 80, 0x4ECDC4);
     startButton.setStrokeStyle(3, 0xffffff);
     startButton.setInteractive({ useHandCursor: true });
+    startButton.setDepth(10); // 确保按钮在最上层
     lobbyElements.push(startButton);
     
     const startButtonText = scene.add.text(centerX, centerY + 50, '开始游戏', {
@@ -488,10 +489,12 @@ function createLobbyUI() {
         fontStyle: 'bold'
     });
     startButtonText.setOrigin(0.5);
+    startButtonText.setDepth(11); // 文字在按钮上面
     lobbyElements.push(startButtonText);
     
     // 按钮交互
     startButton.on('pointerdown', () => {
+        console.log('🖱️ 点击了开始游戏按钮');
         startGame();
     });
     
