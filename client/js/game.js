@@ -166,6 +166,7 @@ function createUI() {
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
     });
     healthText.setShadow(2, 2, '#000000', 2);
+    healthText.setScrollFactor(0); // 固定在屏幕上
     
     scoreText = scene.add.text(16, 48, '分数: 0', {
         fontSize: '20px',
@@ -173,6 +174,7 @@ function createUI() {
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
     });
     scoreText.setShadow(2, 2, '#000000', 2);
+    scoreText.setScrollFactor(0); // 固定在屏幕上
     
     // 等级显示
     levelText = scene.add.text(16, 80, '等级: 1', {
@@ -181,12 +183,14 @@ function createUI() {
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
     });
     levelText.setShadow(2, 2, '#000000', 2);
+    levelText.setScrollFactor(0); // 固定在屏幕上
     
-    scene.add.text(16, 550, 'WASD/方向键移动 | 鼠标左键射击', {
+    const helpText = scene.add.text(16, 550, 'WASD/方向键移动 | 鼠标左键射击', {
         fontSize: '14px',
         fill: '#aaaaaa',
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
     });
+    helpText.setScrollFactor(0); // 固定在屏幕上
     
     createMinimap();
     
@@ -202,11 +206,12 @@ function createMinimap() {
     const minimapWidth = 160;
     const minimapHeight = 160;
     
-    scene.add.text(minimapX + 10, minimapY + 5, '小地图', {
+    const minimapTitle = scene.add.text(minimapX + 10, minimapY + 5, '小地图', {
         fontSize: '14px',
         fill: '#ffffff',
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
     });
+    minimapTitle.setScrollFactor(0); // 固定在屏幕上
     
     minimap = scene.add.rectangle(
         minimapX + minimapWidth/2,
@@ -216,9 +221,11 @@ function createMinimap() {
         0x0a0a1a
     );
     minimap.setStrokeStyle(2, 0x333355);
+    minimap.setScrollFactor(0); // 固定在屏幕上
     
     minimapPlayer = scene.add.circle(0, 0, 5, 0x4ECDC4);
     minimapPlayer.setStrokeStyle(1, 0xffffff);
+    minimapPlayer.setScrollFactor(0); // 固定在屏幕上
 }
 
 // ==========================================
@@ -307,6 +314,7 @@ function updateMinimap() {
         const enemyMinimapY = minimapY + 25 + (enemy.y / mapHeight) * (minimapHeight - 30);
         
         const enemyMarker = scene.add.circle(enemyMinimapX, enemyMinimapY, 3, 0xFF6B6B);
+        enemyMarker.setScrollFactor(0); // 固定在屏幕上
         minimapEnemies.push(enemyMarker);
     }, this);
 }

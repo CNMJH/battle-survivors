@@ -124,6 +124,7 @@ class UpgradeManager {
         
         // 半透明背景
         this.bg = this.scene.add.rectangle(centerX, centerY, 700, 500, 0x000000, 0.8);
+        this.bg.setScrollFactor(0); // 固定在屏幕上
         
         // 标题
         this.title = this.scene.add.text(centerX, centerY - 200, '🎉 选择升级！', {
@@ -133,6 +134,7 @@ class UpgradeManager {
         });
         this.title.setOrigin(0.5);
         this.title.setShadow(2, 2, '#000000', 2);
+        this.title.setScrollFactor(0); // 固定在屏幕上
         
         // 创建升级选项按钮
         this.optionButtons = [];
@@ -143,6 +145,7 @@ class UpgradeManager {
             const button = this.scene.add.rectangle(centerX, buttonY, 500, 80, 0x333355);
             button.setStrokeStyle(2, 0x555577);
             button.setInteractive({ useHandCursor: true });
+            button.setScrollFactor(0); // 固定在屏幕上
             
             const text = this.scene.add.text(centerX, buttonY, `${upgrade.icon} ${upgrade.name}\n${upgrade.description}`, {
                 fontSize: '20px',
@@ -151,6 +154,7 @@ class UpgradeManager {
                 align: 'center'
             });
             text.setOrigin(0.5);
+            text.setScrollFactor(0); // 固定在屏幕上
             
             button.on('pointerdown', () => {
                 this.selectUpgrade(i);

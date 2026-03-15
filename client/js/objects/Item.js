@@ -180,6 +180,7 @@ class ItemManager {
             padding: { left: 20, right: 20, top: 10, bottom: 10 }
         });
         notification.setOrigin(0.5);
+        notification.setScrollFactor(0); // 固定在屏幕上
         
         // 2秒后消失
         this.scene.tweens.add({
