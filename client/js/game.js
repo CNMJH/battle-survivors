@@ -40,6 +40,8 @@ let keyA, keyD, keyW, keyS;
 let lastShootTime = 0;
 let shootCooldown = 200; // 射击冷却（可升级）
 let enemySpawnTimer = null;
+let isInLobby = true; // 是否在大厅界面
+let lobbyElements = []; // 大厅界面元素
 
 // 升级相关
 let upgradeManager;
@@ -73,25 +75,12 @@ function create() {
     console.log('🎮 游戏场景已创建');
     scene = this;
     
-    // 初始化升级系统
-    upgradeManager = new UpgradeManager(this);
-    
-    // 初始化道具系统
-    itemManager = new ItemManager(this);
-    itemManager.init();
-    
-    // 生成并渲染随机地图
-    mapGenerator = new MapGenerator(this);
-    mapGenerator.generate();
-    mapGenerator.renderInPhaser();
-    
-    // 设置世界边界
-    this.physics.world.setBounds(0, 0, mapGenerator.getPixelWidth(), mapGenerator.getPixelHeight());
-    
-    createPlayer();
-    enemies = this.physics.add.group();
-    bullets = this.physics.add.group();
-    createUI();
+    // 显示大厅界面
+    if (isInLobby) {
+        createLobbyUI();
+    } else {
+        startGame();
+    }
     
     cursors = this.input.keyboard.createCursorKeys();
     keyA = this.input.keyboard.addKey('A');
@@ -255,6 +244,11 @@ function createMinimap() {
 // 6. 游戏主循环
 // ==========================================
 function update() {
+    // 如果在大厅界面，不更新游戏逻辑
+    if (isInLobby) {
+        return;
+    }
+    
     if (!player) return;
     
     // 如果正在显示升级界面，不更新游戏
@@ -340,6 +334,11 @@ function updateMinimap() {
 // 7. 射击子弹
 // ==========================================
 function shootBullet() {
+    // 如果在大厅界面，不射击
+    if (isInLobby) {
+        return;
+    }
+    
     const currentTime = scene.time.now;
     if (currentTime < lastShootTime + shootCooldown) {
         return;
@@ -418,6 +417,9 @@ function gameOver() {
         itemManager.stop();
     }
     
+    // 重置大厅状态
+    isInLobby = true;
+    
     scene.physics.pause();
     
     const gameOverText = scene.add.text(400, 250, '游戏结束', {
@@ -442,6 +444,139 @@ function gameOver() {
         fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
     });
     restartText.setOrigin(0.5);
+}
+
+// ==========================================
+// 11. 创建大厅界面
+// ==========================================
+function createLobbyUI() {
+    const centerX = 400;
+    const centerY = 300;
+    
+    console.log('🏠 显示大厅界面');
+    
+    // 游戏标题
+    const title = scene.add.text(centerX, centerY - 150, '战场幸存者', {
+        fontSize: '56px',
+        fill: '#FFD700',
+        fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif',
+        fontStyle: 'bold'
+    });
+    title.setOrigin(0.5);
+    title.setShadow(4, 4, '#000000', 4);
+    lobbyElements.push(title);
+    
+    // 副标题
+    const subtitle = scene.add.text(centerX, centerY - 80, '2D上帝视角多人战斗肉鸽游戏', {
+        fontSize: '20px',
+        fill: '#aaaaaa',
+        fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
+    });
+    subtitle.setOrigin(0.5);
+    lobbyElements.push(subtitle);
+    
+    // 开始游戏按钮
+    const startButton = scene.add.rectangle(centerX, centerY + 50, 300, 80, 0x4ECDC4);
+    startButton.setStrokeStyle(3, 0xffffff);
+    startButton.setInteractive({ useHandCursor: true });
+    lobbyElements.push(startButton);
+    
+    const startButtonText = scene.add.text(centerX, centerY + 50, '开始游戏', {
+        fontSize: '28px',
+        fill: '#ffffff',
+        fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif',
+        fontStyle: 'bold'
+    });
+    startButtonText.setOrigin(0.5);
+    lobbyElements.push(startButtonText);
+    
+    // 按钮交互
+    startButton.on('pointerdown', () => {
+        startGame();
+    });
+    
+    startButton.on('pointerover', () => {
+        startButton.setFillStyle(0x3dbdb1);
+    });
+    
+    startButton.on('pointerout', () => {
+        startButton.setFillStyle(0x4ECDC4);
+    });
+    
+    // 操作说明
+    const helpText = scene.add.text(centerX, centerY + 150, 'WASD/方向键移动 | 鼠标左键射击', {
+        fontSize: '16px',
+        fill: '#888888',
+        fontFamily: 'Microsoft YaHei, PingFang SC, sans-serif'
+    });
+    helpText.setOrigin(0.5);
+    lobbyElements.push(helpText);
+}
+
+// ==========================================
+// 12. 开始游戏
+// ==========================================
+function startGame() {
+    console.log('🎮 开始游戏');
+    
+    // 清除大厅界面
+    lobbyElements.forEach(element => {
+        if (element && element.destroy) {
+            element.destroy();
+        }
+    });
+    lobbyElements = [];
+    
+    isInLobby = false;
+    
+    // 初始化升级系统
+    upgradeManager = new UpgradeManager(scene);
+    
+    // 初始化道具系统
+    itemManager = new ItemManager(scene);
+    itemManager.init();
+    
+    // 生成并渲染随机地图
+    mapGenerator = new MapGenerator(scene);
+    mapGenerator.generate();
+    mapGenerator.renderInPhaser();
+    
+    // 设置世界边界
+    scene.physics.world.setBounds(0, 0, mapGenerator.getPixelWidth(), mapGenerator.getPixelHeight());
+    
+    // 创建玩家、敌人、子弹、UI
+    createPlayer();
+    enemies = scene.physics.add.group();
+    bullets = scene.physics.add.group();
+    createUI();
+    
+    // 设置键盘输入
+    cursors = scene.input.keyboard.createCursorKeys();
+    keyA = scene.input.keyboard.addKey('A');
+    keyD = scene.input.keyboard.addKey('D');
+    keyW = scene.input.keyboard.addKey('W');
+    keyS = scene.input.keyboard.addKey('S');
+    
+    // 设置鼠标点击射击
+    scene.input.on('pointerdown', function(pointer) {
+        if (pointer.leftButtonDown() && !isInLobby) {
+            shootBullet();
+        }
+    });
+    
+    // 设置碰撞检测
+    scene.physics.add.overlap(bullets, enemies, hitEnemy, null, scene);
+    scene.physics.add.overlap(player, enemies, hitPlayer, null, scene);
+    
+    // 启动敌人生成定时器（每2秒生成一个敌人）
+    enemySpawnTimer = scene.time.addEvent({
+        delay: 2000,
+        callback: spawnEnemy,
+        callbackScope: scene,
+        loop: true
+    });
+    
+    console.log('✅ 游戏初始化完成');
 }
 
 // ==========================================
